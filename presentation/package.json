@@ -1,0 +1,7 @@
+{
+  "name": "ham10000-defence-deck",
+  "private": true,
+  "type": "module",
+  "scripts": { "build": "node build-deck.js" },
+  "dependencies": { "pptxgenjs": "^3.12.0" }
+}
