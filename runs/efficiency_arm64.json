@@ -1,0 +1,68 @@
+{
+  "host": {
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "processor": "arm",
+    "torch_threads": 1,
+    "torch_version": "2.13.0"
+  },
+  "results": [
+    {
+      "architecture": "mobilenet_v2",
+      "image_size": 224,
+      "trainable_params": 2232839,
+      "weight_layers": 53,
+      "dropout_p": [
+        0.2
+      ],
+      "state_dict_mb": 9.068,
+      "cpu_latency_ms_mean": 14.158,
+      "cpu_latency_ms_median": 14.17,
+      "cpu_latency_ms_std": 0.158,
+      "warmup_runs": 10,
+      "timed_runs": 100
+    },
+    {
+      "architecture": "resnet50",
+      "image_size": 224,
+      "trainable_params": 23522375,
+      "weight_layers": 54,
+      "dropout_p": [],
+      "state_dict_mb": 94.302,
+      "cpu_latency_ms_mean": 31.129,
+      "cpu_latency_ms_median": 29.486,
+      "cpu_latency_ms_std": 4.289,
+      "warmup_runs": 10,
+      "timed_runs": 100
+    },
+    {
+      "architecture": "efficientnet_b3",
+      "image_size": 224,
+      "trainable_params": 10706991,
+      "weight_layers": 131,
+      "dropout_p": [
+        0.3
+      ],
+      "state_dict_mb": 43.178,
+      "cpu_latency_ms_mean": 89.486,
+      "cpu_latency_ms_median": 88.338,
+      "cpu_latency_ms_std": 4.804,
+      "warmup_runs": 10,
+      "timed_runs": 100
+    },
+    {
+      "architecture": "efficientnet_b3",
+      "image_size": 300,
+      "trainable_params": 10706991,
+      "weight_layers": 131,
+      "dropout_p": [
+        0.3
+      ],
+      "state_dict_mb": 43.178,
+      "cpu_latency_ms_mean": 126.456,
+      "cpu_latency_ms_median": 124.559,
+      "cpu_latency_ms_std": 5.182,
+      "warmup_runs": 10,
+      "timed_runs": 100
+    }
+  ]
+}

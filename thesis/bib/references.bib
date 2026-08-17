@@ -1,0 +1,426 @@
+% =============================================================================
+%  Bibliography for Thesis Proposal:
+%  "Lightweight vs. Heavyweight CNN Architectures for Skin Lesion Classification:
+%   A Controlled Factorial Comparison of MobileNetV2 and ResNet-50 on HAM10000"
+%
+%  Every entry below has been manually verified against the cited primary
+%  source (arXiv abstract page, CVPR/ICCV/NeurIPS proceedings page,
+%  Nature/Springer landing page, or MIT Press article page) before being
+%  included. Verification dates are recorded in the `note' field.
+%  No citation is paraphrased from a secondary source.
+% =============================================================================
+
+
+% --------------------------------------------------------------------------
+%  CORE DATASET
+% --------------------------------------------------------------------------
+
+@article{tschandl2018ham10000,
+  title        = {The {HAM10000} dataset, a large collection of multi-source dermatoscopic images of common pigmented skin lesions},
+  author       = {Tschandl, Philipp and Rosendahl, Cliff and Kittler, Harald},
+  journal      = {Scientific Data},
+  year         = {2018},
+  volume       = {5},
+  pages        = {180161},
+  doi          = {10.1038/sdata.2018.161},
+  url          = {https://www.nature.com/articles/sdata2018161},
+  note         = {10{,}015 dermatoscopic images, 7 diagnostic classes. Verified via Nature 2026-04-28.}
+}
+
+@misc{tschandl2018ham10000_dataverse,
+  title        = {{HAM10000} Dataset (Harvard Dataverse Replication Data)},
+  author       = {Tschandl, Philipp},
+  year         = {2018},
+  howpublished = {Harvard Dataverse},
+  doi          = {10.7910/DVN/DBW86T},
+  url          = {https://doi.org/10.7910/DVN/DBW86T},
+  note         = {Canonical download for the HAM10000 images and ground-truth labels. Verified 2026-04-28.}
+}
+
+
+% --------------------------------------------------------------------------
+%  CORE ARCHITECTURES (the two compared in the 2x3 factorial)
+% --------------------------------------------------------------------------
+
+@misc{howard2017mobilenets,
+  title        = {{MobileNets}: Efficient Convolutional Neural Networks for Mobile Vision Applications},
+  author       = {Howard, Andrew G. and Zhu, Menglong and Chen, Bo and Kalenichenko, Dmitry and Wang, Weijun and Weyand, Tobias and Andreetto, Marco and Adam, Hartwig},
+  year         = {2017},
+  eprint       = {1704.04861},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CV},
+  url          = {https://arxiv.org/abs/1704.04861},
+  note         = {arXiv:1704.04861. Introduces depthwise-separable convolutions and the MobileNet family. Verified via arXiv 2026-04-28.}
+}
+
+@inproceedings{sandler2018mobilenetv2,
+  title        = {{MobileNetV2}: Inverted Residuals and Linear Bottlenecks},
+  author       = {Sandler, Mark and Howard, Andrew and Zhu, Menglong and Zhmoginov, Andrey and Chen, Liang-Chieh},
+  booktitle    = {Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year         = {2018},
+  pages        = {4510--4520},
+  url          = {https://arxiv.org/abs/1801.04381},
+  note         = {arXiv:1801.04381. CVPR 2018 pp. 4510--4520. The exact lightweight architecture evaluated in this thesis. Verified via arXiv 2026-04-28.}
+}
+
+@inproceedings{he2016resnet,
+  title        = {Deep Residual Learning for Image Recognition},
+  author       = {He, Kaiming and Zhang, Xiangyu and Ren, Shaoqing and Sun, Jian},
+  booktitle    = {Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year         = {2016},
+  pages        = {770--778},
+  url          = {https://arxiv.org/abs/1512.03385},
+  note         = {arXiv:1512.03385. ILSVRC 2015 winning architecture. ResNet-50 used as the heavyweight comparator in this thesis. Verified via arXiv 2026-04-28.}
+}
+
+
+% --------------------------------------------------------------------------
+%  CLINICAL / FIELD-DEFINING SKIN-LESION REFERENCES
+% --------------------------------------------------------------------------
+
+@article{esteva2017dermatologist,
+  title        = {Dermatologist-level classification of skin cancer with deep neural networks},
+  author       = {Esteva, Andre and Kuprel, Brett and Novoa, Roberto A. and Ko, Justin and Swetter, Susan M. and Blau, Helen M. and Thrun, Sebastian},
+  journal      = {Nature},
+  year         = {2017},
+  volume       = {542},
+  number       = {7639},
+  pages        = {115--118},
+  doi          = {10.1038/nature21056},
+  url          = {https://www.nature.com/articles/nature21056},
+  note         = {Landmark CNN-vs-dermatologist comparison on 129{,}450 clinical images. Verified via Nature 2026-04-28.}
+}
+
+@article{codella2019isic,
+  title        = {Skin Lesion Analysis Toward Melanoma Detection 2018: A Challenge Hosted by the International Skin Imaging Collaboration ({ISIC})},
+  author       = {Codella, Noel C.~F. and Rotemberg, Veronica and Tschandl, Philipp and Celebi, M.~Emre and Dusza, Stephen and Gutman, David and Helba, Brian and Kalloo, Aadi and Liopyris, Konstantinos and Marchetti, Michael and Kittler, Harald and Halpern, Allan},
+  year         = {2019},
+  eprint       = {1902.03368},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CV},
+  url          = {https://arxiv.org/abs/1902.03368},
+  note         = {arXiv:1902.03368. Documents the ISIC 2018 challenge (which used HAM10000 as the training set). Verified via arXiv 2026-04-28.}
+}
+
+
+% --------------------------------------------------------------------------
+%  PRIOR HAM10000 COMPARISON STUDY (closest published prior to this thesis)
+% --------------------------------------------------------------------------
+
+@misc{le2020classweightedfocal,
+  title        = {Transfer learning with class-weighted and focal loss function for automatic skin cancer classification},
+  author       = {Le, Duyen N.~T. and Le, Hieu X. and Ngo, Lua T. and Ngo, Hoan T.},
+  year         = {2020},
+  eprint       = {2009.05977},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CV},
+  url          = {https://arxiv.org/abs/2009.05977},
+  note         = {arXiv:2009.05977. Modified ResNet-50 with class-weighted and focal loss on HAM10000; reports 93\% top-1 accuracy. Closest published prior to the imbalance-strategy axis of this thesis. Verified via arXiv 2026-04-28.}
+}
+
+
+% --------------------------------------------------------------------------
+%  CLASS-IMBALANCE METHODS (justify the 3 strategies in the factorial)
+% --------------------------------------------------------------------------
+
+@article{buda2018classimbalance,
+  title        = {A systematic study of the class imbalance problem in convolutional neural networks},
+  author       = {Buda, Mateusz and Maki, Atsuto and Mazurowski, Maciej A.},
+  journal      = {Neural Networks},
+  year         = {2018},
+  volume       = {106},
+  pages        = {249--259},
+  url          = {https://arxiv.org/abs/1710.05381},
+  note         = {arXiv:1710.05381. The standard reference for oversampling vs.\ re-weighting on imbalanced CNN training. Verified via arXiv 2026-04-28.}
+}
+
+@inproceedings{cui2019classbalanced,
+  title        = {Class-Balanced Loss Based on Effective Number of Samples},
+  author       = {Cui, Yin and Jia, Menglin and Lin, Tsung-Yi and Song, Yang and Belongie, Serge},
+  booktitle    = {Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year         = {2019},
+  url          = {https://arxiv.org/abs/1901.05555},
+  note         = {arXiv:1901.05555. Theoretical justification for inverse-frequency / effective-number weighting in cross-entropy. Verified via arXiv 2026-04-28.}
+}
+
+@inproceedings{lin2017focal,
+  title        = {Focal Loss for Dense Object Detection},
+  author       = {Lin, Tsung-Yi and Goyal, Priya and Girshick, Ross and He, Kaiming and Doll{\'a}r, Piotr},
+  booktitle    = {Proceedings of the IEEE International Conference on Computer Vision (ICCV)},
+  year         = {2017},
+  url          = {https://arxiv.org/abs/1708.02002},
+  note         = {arXiv:1708.02002. Focal loss; cited in this proposal as the imbalance method explicitly out-of-scope. Verified via arXiv 2026-04-28.}
+}
+
+
+% --------------------------------------------------------------------------
+%  ImageNet pretraining
+% --------------------------------------------------------------------------
+
+@article{russakovsky2015imagenet,
+  title        = {{ImageNet} Large Scale Visual Recognition Challenge},
+  author       = {Russakovsky, Olga and Deng, Jia and Su, Hao and Krause, Jonathan and Satheesh, Sanjeev and Ma, Sean and Huang, Zhiheng and Karpathy, Andrej and Khosla, Aditya and Bernstein, Michael and Berg, Alexander C. and Fei-Fei, Li},
+  journal      = {International Journal of Computer Vision},
+  year         = {2015},
+  volume       = {115},
+  number       = {3},
+  pages        = {211--252},
+  doi          = {10.1007/s11263-015-0816-y},
+  url          = {https://arxiv.org/abs/1409.0575},
+  note         = {arXiv:1409.0575. Source of the ImageNet pretraining used to initialise both backbones. Verified via arXiv 2026-04-28.}
+}
+
+
+% --------------------------------------------------------------------------
+%  STATISTICAL TESTING / METHODS
+% --------------------------------------------------------------------------
+
+@article{dietterich1998tests,
+  title        = {Approximate Statistical Tests for Comparing Supervised Classification Learning Algorithms},
+  author       = {Dietterich, Thomas G.},
+  journal      = {Neural Computation},
+  year         = {1998},
+  volume       = {10},
+  number       = {7},
+  pages        = {1895--1923},
+  doi          = {10.1162/089976698300017197},
+  url          = {https://direct.mit.edu/neco/article-abstract/10/7/1895/6224/},
+  note         = {Standard reference recommending McNemar's test for comparing two classifiers on a single test set; this thesis uses it for the 2x3 paired comparisons. Verified via MIT Press 2026-04-28.}
+}
+
+
+% --------------------------------------------------------------------------
+%  EXPLAINABILITY (for the optional error-analysis visualisation)
+% --------------------------------------------------------------------------
+
+@inproceedings{selvaraju2017gradcam,
+  title        = {{Grad-CAM}: Visual Explanations from Deep Networks via Gradient-based Localization},
+  author       = {Selvaraju, Ramprasaath R. and Cogswell, Michael and Das, Abhishek and Vedantam, Ramakrishna and Parikh, Devi and Batra, Dhruv},
+  booktitle    = {Proceedings of the IEEE International Conference on Computer Vision (ICCV)},
+  year         = {2017},
+  url          = {https://arxiv.org/abs/1610.02391},
+  note         = {arXiv:1610.02391. Used in this thesis only as an optional qualitative tool for the error-analysis section. Verified via arXiv 2026-04-28.}
+}
+
+
+% --------------------------------------------------------------------------
+%  TOOLS / RUNTIMES
+% --------------------------------------------------------------------------
+
+@inproceedings{paszke2019pytorch,
+  title        = {{PyTorch}: An Imperative Style, High-Performance Deep Learning Library},
+  author       = {Paszke, Adam and Gross, Sam and Massa, Francesco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and Desmaison, Alban and K{\"o}pf, Andreas and Yang, Edward and DeVito, Zachary and Raison, Martin and Tejani, Alykhan and Chilamkurthy, Sasank and Steiner, Benoit and Fang, Lu and Bai, Junjie and Chintala, Soumith},
+  booktitle    = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year         = {2019},
+  url          = {https://arxiv.org/abs/1912.01703},
+  note         = {arXiv:1912.01703. Implementation framework for the experiments. Verified via arXiv 2026-04-28.}
+}
+
+
+@article{eswa2024e2e,
+  author       = {Aa, Razia Sulthana and Chamola, Vinay and Hussain, Zain and Albalwy, Faisal and Hussain, Amir},
+  title        = {A Novel End-to-End Deep Convolutional Neural Network Based Skin Lesion Classification Framework},
+  journal      = {Expert Systems with Applications},
+  volume       = {246},
+  pages        = {123056},
+  year         = {2024},
+  doi          = {10.1016/j.eswa.2023.123056},
+  note         = {Source: Reference Papers/1-s2.0-S0957417423035583-main.pdf}
+}
+
+@article{bilsk2021,
+  author       = {Calder{\'o}n, Camilo and S{\'a}nchez, Karen and Castillo, Sergio and Arguello, Henry},
+  title        = {{BILSK}: A Bilinear Convolutional Neural Network Approach for Skin Lesion Classification},
+  journal      = {Computer Methods and Programs in Biomedicine Update},
+  volume       = {1},
+  pages        = {100036},
+  year         = {2021},
+  doi          = {10.1016/j.cmpbup.2021.100036},
+  note         = {Source: Reference Papers/1-s2.0-S2666990021000355-main.pdf}
+}
+
+@misc{rezvantalab2020dermoscopy,
+  author       = {Rezvantalab, Amirreza and Safigholi, Habib and Karimijeshni, Somayeh},
+  title        = {Dermatologist Level Dermoscopy Skin Cancer Classification Using Different Deep Learning Convolutional Neural Networks Algorithms},
+  year         = {2020},
+  note         = {Source: Reference Papers/1810.10348v1.pdf (filename misleading)}
+}
+
+@misc{le2020focal,
+  author       = {Le, Duyen N.T. and Le, Hieu X. and Ngo, Lua T. and Ngo, Hoan T.},
+  title        = {Transfer Learning with Class-Weighted and Focal Loss Function for Automatic Skin Cancer Classification},
+  year         = {2020},
+  eprint       = {2009.05977},
+  archivePrefix= {arXiv},
+  primaryClass = {eess.IV},
+  note         = {HAM10000; top-1/2/3 accuracy 93/97/99\%. Source: 2009.05977v1.pdf}
+}
+
+@article{khan2026explain,
+  author       = {Khan, Tooba and Haque, Muhammad Zeeshan Ul and Munir, Gul and Ahmed, Irfan},
+  title        = {Deep Learning-Based Skin Care Detection with Multi-method Explainability: {Grad-CAM}, {LIME}, and Occlusion Sensitivity},
+  journal      = {IIUM Engineering Journal},
+  volume       = {27},
+  number       = {1},
+  year         = {2026},
+  doi          = {10.31436/iiumej.v27i1.4049},
+  note         = {Kaggle Skin Cancer 2637 images. Source: 4049-Article Text PDF}
+}
+
+@article{bajwa2020applsci,
+  author       = {Bajwa, Muhammad Naseer and Muta, Kaoru and Malik, Muhammad Imran and others},
+  title        = {Computer-Aided Diagnosis of Skin Diseases using Deep Neural Networks},
+  journal      = {Applied Sciences},
+  volume       = {10},
+  number       = {7},
+  pages        = {2488},
+  year         = {2020},
+  doi          = {10.3390/app10072488},
+  note         = {DermNet 80\% acc, 98\% AUC (23 diseases). Source: applsci-10-02488.pdf}
+}
+
+@article{manole2024efficientnet,
+  author       = {Manole, I. and Butacu, A.-I. and Bejan, R.N. and Tiplica, G.-S.},
+  title        = {Enhancing Dermatological Diagnostics with {EfficientNet}: A Deep Learning Approach},
+  journal      = {Bioengineering},
+  volume       = {11},
+  number       = {8},
+  pages        = {810},
+  year         = {2024},
+  doi          = {10.3390/bioengineering11080810},
+  note         = {95.4\% validation accuracy (4 classes). Source: bioengineering-11-00810.pdf}
+}
+
+@article{chiu2025ensemble,
+  author       = {Chiu, T.-M. and Chi, I.-C. and Li, Y.-C. and Tseng, M.-H.},
+  title        = {Deep Ensemble Learning for Multiclass Skin Lesion Classification},
+  journal      = {Bioengineering},
+  volume       = {12},
+  number       = {9},
+  pages        = {934},
+  year         = {2025},
+  doi          = {10.3390/bioengineering12090934},
+  note         = {CSMUH dataset; 25 pretrained models. Source: bioengineering-12-00934-v2.pdf}
+}
+
+@article{alruwaili2025fusion,
+  author       = {Alruwaili, M. and Mohamed, M.},
+  title        = {An Integrated Deep Learning Model with {EfficientNet} and {ResNet} for Accurate Multi-Class Skin Disease Classification},
+  journal      = {Diagnostics},
+  volume       = {15},
+  number       = {5},
+  pages        = {551},
+  year         = {2025},
+  doi          = {10.3390/diagnostics15050551},
+  note         = {EfficientNet+ResNet fusion branches. Source: diagnostics-15-00551.pdf}
+}
+
+@article{agarwal2021cnn,
+  author       = {Agarwal, Raghav and Godavarthi, Deepthi},
+  title        = {Skin Disease Classification Using {CNN} Algorithms},
+  journal      = {EAI Endorsed Transactions on Pervasive Health and Technology},
+  year         = {2021},
+  doi          = {10.4108/eetpht.9.4039},
+  note         = {Source: e8ca883621acde93324acd69f3cf1a9d0f78.pdf}
+}
+
+@article{wei2023densenetconvnext,
+  author       = {Wei, M. and Wu, Q. and Ji, H. and Wang, J. and others},
+  title        = {A Skin Disease Classification Model Based on {DenseNet} and {ConvNeXt} Fusion},
+  journal      = {Electronics},
+  volume       = {12},
+  number       = {2},
+  pages        = {438},
+  year         = {2023},
+  doi          = {10.3390/electronics12020438},
+  note         = {HAM10000: 95.29\% acc, 89.99\% F1. Source: electronics-12-00438-v2.pdf}
+}
+
+@article{vieira2025detection,
+  author       = {Vieira, J. and Mendon{\c{c}}a, F. and Morgado-Dias, F.},
+  title        = {Deep Learning Approaches for Skin Lesion Detection},
+  journal      = {Electronics},
+  volume       = {14},
+  number       = {14},
+  pages        = {2785},
+  year         = {2025},
+  doi          = {10.3390/electronics14072785},
+  note         = {ConvNeXtXLarge 87.62\% acc, 76.15\% F1. Source: electronics-14-02785-v2.pdf}
+}
+
+@article{fmed2021clinical,
+  author       = {Authors per Frontiers in Medicine 2021 PDF},
+  title        = {A Deep Learning Based Framework for Diagnosing Multiple Skin Diseases in a Clinical Environment},
+  journal      = {Frontiers in Medicine},
+  volume       = {8},
+  pages        = {626369},
+  year         = {2021},
+  doi          = {10.3389/fmed.2021.626369},
+  note         = {Source: fmed-08-626369.pdf}
+}
+
+@article{shams2025jcmr,
+  author       = {Shams and co-authors per JCMR 2025 PDF},
+  title        = {Skin Disease Classification: A Comparison of {ResNet}, {MobileNet}, and {EfficientNet}},
+  journal      = {Journal of Current Multidisciplinary Research},
+  volume       = {1},
+  number       = {1},
+  pages        = {1--7},
+  year         = {2025},
+  doi          = {10.21608/jcmr.2025.327880.1002},
+  note         = {DermNet; 93/94/99\% for ResNet50/MobileNet/EfficientNet-B0. Source: JCMR PDF}
+}
+
+@article{kshirsagar2022prognosis,
+  author       = {Kshirsagar, P.R. and Manoharan, H. and Shitharth, S. and others},
+  title        = {Deep Learning Approaches for Prognosis of Automated Skin Disease},
+  journal      = {Life},
+  volume       = {12},
+  number       = {4},
+  pages        = {426},
+  year         = {2022},
+  doi          = {10.3390/life12040426},
+  note         = {Source: life-12-00426-v2.pdf}
+}
+
+@article{sharma2021framework,
+  author       = {Sharma, Nonita and Mangla, Monika and Iqbal, M. Mohamed and Mohanty, Sachi Nandan},
+  title        = {Deep Learning Framework for Identification of Skin Lesions},
+  journal      = {EAI Endorsed Transactions on Pervasive Health and Technology},
+  year         = {2021},
+  note         = {EfficientNet B0--B5 >90\% accuracy. Source: out.pdf}
+}
+
+@article{firdous2026ensemblexai,
+  author       = {Firdous, F. and Yadav, D. and Rufai, S. and others},
+  title        = {An Ensemble Deep Learning Framework for Skin Disease Classification with Explainable and Generative {AI} Support},
+  journal      = {Discover Artificial Intelligence},
+  year         = {2026},
+  note         = {HAM10000+ISIC2019; ensemble test acc 90.74\%. Source: s44163 reference PDF}
+}
+
+@misc{aziz2024ssrn,
+  author       = {Aziz, Abdul},
+  title        = {{AI}-Assisted Diagnosis in Medical Imaging: A Comparative Study of {CNN} Models for Skin Lesion Classification},
+  year         = {2024},
+  howpublished = {SSRN},
+  note         = {HAM10000; 87.2\% accuracy reported. Source: ssrn-5349758.pdf}
+}
+
+@misc{gao2024skinlitenet,
+  author       = {Gao, Jieping and Sun, Lei and Zhang, Pengyun},
+  title        = {{Skin-LiteNet}: A Lightweight Convolutional Module for Skin Disease Image Classification},
+  year         = {2024},
+  note         = {HAM10000: 98.97\% acc, 98.89\% F1, 284.44K params. Source: Skin-LiteNet PDF}
+}
+
+@incollection{cdics2024proceedings,
+  author       = {Nayyar, Anand and Ling, Tok Wang and Leung, Carson},
+  title        = {Data, Information and Computing Science (CDICS 2024 Proceedings)},
+  booktitle    = {Advances in Transdisciplinary Engineering},
+  volume       = {67},
+  publisher    = {IOS Press},
+  year         = {2024},
+  doi          = {10.3233/ATDE67},
+  note         = {Brief survey cites skin/ML chapters only. Source: ATDE67.pdf}
+}

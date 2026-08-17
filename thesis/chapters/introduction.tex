@@ -1,0 +1,98 @@
+\section{Why Melanoma Detection Is a Timing Problem}
+
+Melanoma is survivable when it is caught early and frequently fatal when it is not.
+Five-year survival sits near 100\% for lesions found while still localised and drops
+below 30\% once the disease has metastasised~\cite{esteva2017dermatologist}. Nothing
+about the tumour changes in that interval except how long it has been left alone. The
+clinical problem is therefore less about treatment than about how quickly a suspicious
+lesion reaches somebody qualified to look at it.
+
+That is a resource problem. Dermatologists are unevenly distributed, waiting lists are
+long, and the people most at risk are often the least likely to present early. A triage
+tool that runs on a phone, in a general practice, or in a rural clinic without
+specialist cover does not need to replace a dermatologist. It needs to sort lesions well
+enough to move the worrying ones up the queue.
+
+Deep learning has been able to do this in principle since Esteva et
+al.~\cite{esteva2017dermatologist} trained an Inception-v3 network on roughly 129{,}000
+clinical and dermoscopic images and matched board-certified dermatologists on biopsy-proven
+cases. The result has been reproduced in various forms often enough that the open
+question is no longer whether a convolutional network can classify skin lesions. It is
+which network you should actually deploy, and what that choice costs you.
+
+\section{The Gap Between Benchmark and Phone}
+
+Published accuracy is usually reported for architectures that were never meant to run
+on a handset. ResNet-50~\cite{he2016resnet} is the standard medical-imaging baseline and
+serialises to 94.3~MB in the seven-class configuration used in this thesis.
+MobileNetV2~\cite{sandler2018mobilenetv2}, designed for exactly the on-device case,
+comes to 9.1~MB. Both figures are measured here rather than quoted, and the ratio is
+close to eleven to one.
+
+An eleven-fold difference in size is not a rounding error. It decides whether a model
+ships inside an app or sits behind a network call, and a network call is precisely what
+an offline screening tool cannot depend on. So the practical question is narrow and
+answerable: what does the smaller network actually give up?
+
+The published record answers this badly, for a reason worth stating plainly. Studies
+comparing architectures on HAM10000 tend to vary more than the architecture. Split
+protocol, augmentation, optimiser, batch size and epoch budget move together from paper
+to paper, so a reported gap between two backbones conflates the backbone with everything
+else that changed. Headline accuracy makes it worse. HAM10000 is 66.9\% benign
+melanocytic nevi, so a model that answers \emph{nevus} to every image scores 66.9\%
+without ever recognising a melanoma. That number looks respectable next to much of the
+literature, and it is worthless.
+
+\section{What This Thesis Does}
+
+This thesis runs the comparison as a controlled experiment. One pipeline, one split, one
+optimiser, one schedule, and exactly two things allowed to vary: the architecture and
+the strategy used to handle class imbalance. That gives a $2\times3$ factorial over
+MobileNetV2 and ResNet-50 crossed with augmentation-only, weighted cross-entropy and
+random oversampling.
+
+A third architecture, EfficientNet-B3~\cite{manole2024efficientnet}, was added after the
+original six runs were designed and executed. It is treated throughout as an ablation
+rather than as a third arm of the confirmatory design, and it is reported in its own
+statistical family. The distinction matters: the first six runs were specified before
+any results were seen, and folding a later addition into the same analysis would let a
+post-hoc decision change whether the pre-registered findings hold. EfficientNet-B3 is run
+twice, once at 224 pixels to match the other two backbones and once at its native 300,
+so that any difference can be attributed to the architecture rather than to the larger
+input it normally receives.
+
+Performance is reported per class, with melanoma and basal cell carcinoma as the
+headline, because those are the classes a screening tool is answerable for. Overall
+accuracy appears in the results tables for completeness and is never used to decide
+anything.
+
+\section{Contributions}
+
+\begin{enumerate}
+  \item A controlled factorial on HAM10000 in which architecture and imbalance strategy
+        are isolated from one another and from the rest of the pipeline, with the split
+        hash recorded in every run so that any deviation is detectable rather than
+        assumed absent.
+  \item Per-class precision, recall and F1 for all seven classes across every
+        configuration, rather than the single accuracy figure that dominates the
+        published record.
+  \item An EfficientNet-B3 ablation at two input resolutions, which separates the
+        question of whether the architecture is better from the question of whether it
+        was simply given more pixels.
+  \item Paired McNemar tests with Holm-Bonferroni correction, kept in two families so
+        that pre-registered comparisons and later additions are not mixed.
+  \item Measured efficiency figures (parameter count, on-disk size, CPU latency) rather
+        than the estimates usually quoted from the original architecture papers.
+  \item A reproducible implementation in which every reported number is generated from
+        the stored run artefacts, so that the tables in this document cannot drift from
+        the experiments that produced them.
+\end{enumerate}
+
+\section{Structure}
+
+Chapter~2 reviews the relevant literature and identifies what the existing record does
+and does not settle. Chapter~3 states the research gap and the three research questions,
+each with a pass condition fixed in advance. Chapter~4 describes HAM10000 and the
+lesion-level split protocol. Chapter~5 gives the methodology, including the code that
+was actually executed. Chapter~6 sets out the evaluation method and the statistical
+procedure. Chapter~7 reports results, Chapter~8 discusses them, and Chapter~9 concludes.

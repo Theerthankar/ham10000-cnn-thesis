@@ -1,0 +1,32 @@
+# Dataset. ~2.6 GB, publicly available, never committed.
+# dataverse_files/ holds the original download; data/ is what notebook 01 unpacks it into.
+/data/
+/dataverse_files/
+*.zip
+
+# Model checkpoints. ~1.6 GB, regenerable by re-running the notebooks.
+*.pt
+*.pth
+
+# Everything else under runs/ IS committed: config.json, history.csv,
+# test_metrics.json, test_predictions.csv. Those are the evidence.
+
+# LaTeX build artefacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+
+__pycache__/
+*.pyc
+.venv*/
+.ipynb_checkpoints/
+.DS_Store

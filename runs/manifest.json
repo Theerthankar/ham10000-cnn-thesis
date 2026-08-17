@@ -1,0 +1,122 @@
+{
+  "E1": {
+    "status": "complete",
+    "architecture": "mobilenet_v2",
+    "strategy": "augmentation",
+    "image_size": 224,
+    "last_epoch": 38,
+    "test_macro_f1": 0.664277,
+    "test_balanced_accuracy": 0.671452,
+    "updated_at": "2026-08-16T19:41:51.522792+00:00"
+  },
+  "E3": {
+    "status": "complete",
+    "architecture": "mobilenet_v2",
+    "strategy": "weighted_ce",
+    "image_size": 224,
+    "last_epoch": 34,
+    "test_macro_f1": 0.621706,
+    "test_balanced_accuracy": 0.743508,
+    "updated_at": "2026-08-16T19:56:04.754243+00:00"
+  },
+  "E5": {
+    "status": "complete",
+    "architecture": "mobilenet_v2",
+    "strategy": "oversampling",
+    "image_size": 224,
+    "last_epoch": 30,
+    "test_macro_f1": 0.681428,
+    "test_balanced_accuracy": 0.711777,
+    "updated_at": "2026-08-16T20:10:07.259958+00:00"
+  },
+  "E2": {
+    "status": "complete",
+    "architecture": "resnet50",
+    "strategy": "augmentation",
+    "image_size": 224,
+    "last_epoch": 46,
+    "test_macro_f1": 0.627581,
+    "test_balanced_accuracy": 0.592075,
+    "updated_at": "2026-08-16T20:40:09.572080+00:00"
+  },
+  "E4": {
+    "status": "complete",
+    "architecture": "resnet50",
+    "strategy": "weighted_ce",
+    "image_size": 224,
+    "last_epoch": 50,
+    "test_macro_f1": 0.483386,
+    "test_balanced_accuracy": 0.557253,
+    "updated_at": "2026-08-16T21:20:12.342483+00:00"
+  },
+  "E6": {
+    "status": "complete",
+    "architecture": "resnet50",
+    "strategy": "oversampling",
+    "image_size": 224,
+    "last_epoch": 16,
+    "test_macro_f1": 0.527456,
+    "test_balanced_accuracy": 0.655718,
+    "updated_at": "2026-08-17T02:47:26.658624+00:00"
+  },
+  "E7": {
+    "status": "complete",
+    "architecture": "efficientnet_b3",
+    "strategy": "augmentation",
+    "image_size": 224,
+    "last_epoch": 15,
+    "test_macro_f1": 0.674211,
+    "test_balanced_accuracy": 0.637328,
+    "updated_at": "2026-08-17T03:07:02.168938+00:00"
+  },
+  "E8": {
+    "status": "complete",
+    "architecture": "efficientnet_b3",
+    "strategy": "weighted_ce",
+    "image_size": 224,
+    "last_epoch": 21,
+    "test_macro_f1": 0.614285,
+    "test_balanced_accuracy": 0.687187,
+    "updated_at": "2026-08-17T03:21:37.564118+00:00"
+  },
+  "E9": {
+    "status": "complete",
+    "architecture": "efficientnet_b3",
+    "strategy": "oversampling",
+    "image_size": 224,
+    "last_epoch": 20,
+    "test_macro_f1": 0.704281,
+    "test_balanced_accuracy": 0.761149,
+    "updated_at": "2026-08-17T03:35:08.349384+00:00"
+  },
+  "E10": {
+    "status": "complete",
+    "architecture": "efficientnet_b3",
+    "strategy": "augmentation",
+    "image_size": 300,
+    "last_epoch": 21,
+    "test_macro_f1": 0.700415,
+    "test_balanced_accuracy": 0.672111,
+    "updated_at": "2026-08-17T04:01:59.798410+00:00"
+  },
+  "E11": {
+    "status": "complete",
+    "architecture": "efficientnet_b3",
+    "strategy": "weighted_ce",
+    "image_size": 300,
+    "last_epoch": 26,
+    "test_macro_f1": 0.737592,
+    "test_balanced_accuracy": 0.769913,
+    "updated_at": "2026-08-17T10:03:48.976245+00:00"
+  },
+  "E12": {
+    "status": "complete",
+    "architecture": "efficientnet_b3",
+    "strategy": "oversampling",
+    "image_size": 300,
+    "last_epoch": 18,
+    "test_macro_f1": 0.714097,
+    "test_balanced_accuracy": 0.695218,
+    "updated_at": "2026-08-17T10:28:20.058340+00:00"
+  }
+}

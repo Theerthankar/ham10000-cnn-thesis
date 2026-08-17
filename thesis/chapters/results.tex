@@ -1,0 +1,447 @@
+\section{Status of the Experimental Programme}
+\label{sec:results-status}
+
+All twelve runs are complete: the confirmatory factorial (E1 to E6) in
+Sections~\ref{sec:results-headline} to~\ref{sec:results-stats}, and the EfficientNet-B3
+ablation (E7 to E12) in Section~\ref{sec:results-ablation}.
+
+Every number in this chapter is generated from the stored run artefacts by
+\texttt{scripts/build\_thesis\_tables.py} and \texttt{scripts/make\_figures.py} rather
+than transcribed, so the tables cannot drift from the experiments that produced them.
+
+All twelve runs carry split hash \texttt{f35ac1de18678182}, confirming they trained and
+were evaluated on identical partitions. Tables covering all twelve include the ablation
+rows; the confirmatory analysis in Sections~\ref{sec:results-rq1}
+and~\ref{sec:results-rq2} is computed over E1 to E6 only, for the reason given in
+Section~\ref{sec:ablation}.
+
+\section{Headline Metrics}
+\label{sec:results-headline}
+
+\input{chapters/generated/headline.tex}
+
+One pattern dominates Table~\ref{tab:headline}: \textbf{MobileNetV2 achieves higher macro
+F1 than ResNet-50 under every one of the three imbalance strategies}. The margins are
+0.037 under augmentation, 0.138 under weighted cross-entropy and 0.154 under
+oversampling. The lightweight network is never the weaker of the pair on this metric,
+which is the opposite of what the ordering of model sizes would predict.
+
+Accuracy tells a different and less useful story. E1 and E2 sit within 0.004 of each
+other at roughly 0.80, close to the 0.669 a constant classifier achieves and close to
+one another despite a 0.037 gap in macro F1. This is the behaviour
+Section~\ref{sec:eval-why} anticipated: accuracy on this dataset is largely a report on
+how well a model handles nevi.
+
+E4 is the weakest run in the set on every aggregate metric, and it is also the only run
+to exhaust the epoch budget. It ran the full 50 epochs without early stopping
+triggering, meaning validation loss was still improving, or at least not failing to
+improve for ten consecutive epochs, when the ceiling was reached. Its results should be
+read as those of a run that had not converged. Chapter~8 takes this up.
+
+At the other extreme, E6 stopped at 16 epochs, less than a third of E4's budget, and
+still outperformed it on macro F1 by 0.044.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/02_training_curves.pdf}
+\caption{Validation loss (top) and validation macro F1 (bottom) by epoch, grouped by
+architecture. MobileNetV2 descends smoothly; ResNet-50 is visibly noisier under the
+shared learning rate.}
+\label{fig:curves}
+\end{figure}
+
+\section{Per-Class Results}
+\label{sec:results-perclass}
+
+\input{chapters/generated/perclass.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/03_per_class_f1_heatmap.pdf}
+\caption{Per-class F1 across the confirmatory factorial. NV is handled well by every
+configuration; the variation that distinguishes them lives in the rarer classes.}
+\label{fig:heatmap}
+\end{figure}
+
+Nevi are classified consistently well everywhere, between 0.836 and 0.905, which is what
+a class with 690 test images and two thirds of the training data should look like. The
+disagreement between configurations lives almost entirely in the other six classes.
+
+Melanoma F1 spans 0.254 (E6) to 0.506 (E5), a factor of two across configurations of the
+same two architectures on the same data. That spread is the practical case for reporting
+per-class metrics: nothing in Table~\ref{tab:headline} distinguishes E6's melanoma
+performance from E2's as sharply as this does.
+
+\subsection{Precision and recall on the clinical classes}
+
+\input{chapters/generated/clinical.tex}
+
+Table~\ref{tab:clinical} is where the trade-off becomes explicit, and it justifies
+reporting precision and recall separately rather than only F1.
+
+E3 attains the highest melanoma recall of any run at 0.635 and the lowest melanoma
+precision at 0.340. It finds nearly two thirds of melanomas, and roughly one in three of
+the lesions it calls melanoma actually is one. E6 is the mirror image: melanoma precision
+of 0.667, the best in the set, on recall of 0.157. When E6 says melanoma it is usually
+right, and it says melanoma for only 18 of the 115 melanomas present.
+
+For a screening tool those two failure modes are not equivalent. E6 misses 97 melanomas.
+E3 misses 42 and refers a larger number of benign lesions for review.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/05_melanoma_precision_recall.pdf}
+\caption{Melanoma precision against recall, with iso-F1 contours. Configurations sit on
+a trade-off curve rather than being uniformly better or worse.}
+\label{fig:tradeoff}
+\end{figure}
+
+\section{RQ1: The Deployability Gap}
+\label{sec:results-rq1}
+
+The RQ2 criterion selects \RQoneBestMobile{} as the best MobileNetV2 configuration and
+\RQoneBestResnet{} as the best ResNet-50 configuration. Applying Equation~\ref{eq:rq1}:
+
+\begin{equation*}
+  \bigl| \mathrm{F1}_{\mathrm{MEL}}(\RQoneBestMobile) - \mathrm{F1}_{\mathrm{MEL}}(\RQoneBestResnet) \bigr|
+  = \bigl| \RQoneFoneMobile - \RQoneFoneResnet \bigr| = \RQoneGap \le 0.05
+\end{equation*}
+
+\textbf{RQ1 \RQoneVerdict.} The gap of \RQoneGap{} falls inside the threshold fixed in advance.
+
+\subsection{Robustness to the definition of ``best''}
+\label{sec:rq1-robustness}
+
+Because ``best'' is a definitional choice, the comparison was repeated under the
+alternative reading in which best means highest macro F1. That selects \RQoneAltMobile{} for
+MobileNetV2 and \RQoneAltResnet{} for ResNet-50, giving a gap of \RQoneAltGap, which also
+passes and does so by a wider margin.
+
+The conclusion therefore does not depend on which definition is used. Under the
+recall-based criterion the lightweight model is 0.037 behind on melanoma F1; under the
+macro-F1 criterion it is 0.027 ahead. Both are inside the threshold.
+
+\section{RQ2: Best Strategy per Architecture}
+\label{sec:results-rq2}
+
+\input{chapters/generated/rq2.tex}
+
+\textbf{Weighted cross-entropy is the best strategy for MobileNetV2. Augmentation-only is
+the best strategy for ResNet-50.} The answer is architecture-dependent, which is what
+Gap~2 of Section~\ref{sec:gaps} asked about, and it means a recommendation of an
+imbalance remedy without reference to the backbone would be incomplete.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/06_rq2_criterion.pdf}
+\caption{RQ2 criterion by run. Outlined bars are the best configuration for that
+architecture.}
+\label{fig:rq2}
+\end{figure}
+
+The result is more striking than the table alone conveys. Both remediation strategies
+\emph{reduce} the criterion for ResNet-50: 0.516 with no remediation falls to 0.378 with
+weighted cross-entropy and 0.352 with oversampling. For MobileNetV2, weighted
+cross-entropy raises it from 0.589 to 0.648 while oversampling lowers it to 0.548.
+
+Interventions designed to help rare classes made ResNet-50 worse at exactly the classes
+they target. Chapter~8 argues this is a consequence of optimisation instability rather
+than of the remedies themselves.
+
+\subsection{The metric-dependence of ``best''}
+
+Ranking by macro F1 instead gives a different answer. For MobileNetV2 the ordering
+becomes E5 (0.681), E1 (0.664), E3 (0.622), so oversampling wins where weighted
+cross-entropy won on recall. For ResNet-50 the ordering is E2 (0.628), E6 (0.527), E4
+(0.483), so augmentation-only wins under both criteria.
+
+The MobileNetV2 disagreement is a genuine precision/recall trade-off rather than noise.
+E3 buys melanoma recall of 0.635 at precision 0.340; E5 balances at 0.530 and 0.484. F1
+prefers the balance, the clinical criterion prefers the recall, and both are defensible
+depending on whether a false negative or a false positive is more costly. This thesis
+commits to the recall reading for the reason given in Section~\ref{sec:rqs}, and reports
+both.
+
+\section{Frequency Tiers}
+\label{sec:results-tiers}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/09_frequency_tiers.pdf}
+\caption{Mean F1 over the majority tier (NV, BKL, MEL) against the minority tier
+(AKIEC, VASC, DF).}
+\label{fig:tiers}
+\end{figure}
+
+The tier view separates configurations that improved rare-class performance from those
+that merely traded one class against another. It corroborates the per-class table
+without adding independent evidence, since both derive from the same predictions.
+
+\section{Statistical Testing}
+\label{sec:results-stats}
+
+\input{chapters/generated/mcnemar.tex}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/10_mcnemar.pdf}
+\caption{Holm-corrected $p$-values, confirmatory family. Green passes at
+$\alpha = 0.05$.}
+\label{fig:mcnemar}
+\end{figure}
+
+Three results in Table~\ref{tab:mcnemar-confirmatory} matter.
+
+\paragraph{The architectures are statistically indistinguishable under two of three
+strategies.} E1 vs E2 and E3 vs E4 both fail to reach significance. Under augmentation
+and under weighted cross-entropy, MobileNetV2 and ResNet-50 disagree about equally often
+in both directions. Given that MobileNetV2 is roughly a tenth of ResNet-50's size, an
+inability to distinguish them is a substantive finding rather than an absence of one.
+
+\paragraph{Where they do differ, the lightweight model wins.} E5 vs E6 is significant at
+$p = 6.07 \times 10^{-6}$ in favour of MobileNetV2. In no comparison does ResNet-50
+significantly outperform MobileNetV2.
+
+\paragraph{Strategy matters more than architecture for ResNet-50.} Both E2 vs E4 and E2
+vs E6 are significant and both favour augmentation-only, with $p$ values several orders
+of magnitude below threshold. The imbalance remedies did measurable harm to ResNet-50,
+and the effect is larger than any architecture effect observed.
+
+\section{Training Cost}
+\label{sec:results-cost}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/11_training_cost.pdf}
+\caption{Epochs completed before early stopping. E4 alone exhausted the 50-epoch budget.}
+\label{fig:cost}
+\end{figure}
+
+Epoch counts vary by more than a factor of three, from 16 (E6) to 50 (E4). MobileNetV2
+runs averaged 34 epochs at roughly 21.5 seconds each; ResNet-50 runs averaged 37 epochs
+at roughly 30.8 seconds each. The lightweight network was cheaper per epoch and required
+no more epochs, so it was cheaper to train in total under every strategy.
+
+E4 reaching the ceiling is a limitation of that run rather than a property of the
+configuration, and its numbers carry an asterisk throughout: it is the one result in this
+chapter produced by a model that had not finished converging.
+
+\section{Confusion Structure}
+\label{sec:results-confusion}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/04_confusion_matrices.pdf}
+\caption{Confusion matrices, row-normalised with counts annotated.}
+\label{fig:confusion}
+\end{figure}
+
+The dominant off-diagonal mass in every run lies between nevi, melanoma and benign
+keratoses. These three are the classes a dermatologist also finds hardest to separate on
+dermoscopy alone, so the models are failing along clinically sensible lines rather than
+at random.
+
+The melanoma-to-nevus cell is the one with clinical consequence, since it is a malignancy
+classified as benign. It is largest in E6, consistent with that run's melanoma recall of
+0.157.
+
+\section{EfficientNet-B3 Ablation}
+\label{sec:results-ablation}
+
+The ablation asks two questions: whether EfficientNet-B3 outperforms either incumbent at
+matched input resolution, and whether its native 300-pixel input accounts for any
+advantage it shows. Both are answered against the twelve exploratory comparisons of
+Listing~\ref{lst:families}, corrected within their own family.
+
+\subsection{At matched resolution}
+
+\begin{table}[htbp]
+\centering
+\caption{Macro F1 at 224 pixels, all three architectures, by strategy. Every model in
+this table receives an identically sized input.}
+\label{tab:b3-matched}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Strategy} & \textbf{MobileNetV2} & \textbf{ResNet-50} & \textbf{EfficientNet-B3} \\
+\midrule
+Augmentation only   & 0.664 (E1) & 0.628 (E2) & \textbf{0.674 (E7)} \\
+Weighted CE         & \textbf{0.622 (E3)} & 0.483 (E4) & 0.614 (E8) \\
+Random oversampling & 0.681 (E5) & 0.527 (E6) & \textbf{0.704 (E9)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+EfficientNet-B3 takes the highest macro F1 under two of the three strategies and loses
+narrowly to MobileNetV2 under the third. E9 at 0.704 is the strongest 224-pixel run in
+the study.
+
+The statistical picture is more restrained. Of the six comparisons pitting B3 against an
+incumbent at matched resolution, only one reaches significance after Holm correction: E9
+against E6 ($p = 2.00 \times 10^{-7}$), where the ResNet-50 run it beats is the weakest
+of that architecture's three. Against MobileNetV2 specifically, all three comparisons are
+non-significant (E7 vs E1 and E9 vs E5 both at $p = 1.000$, E8 vs E3 at $p = 0.222$).
+
+So at matched input size EfficientNet-B3 and MobileNetV2 cannot be distinguished on
+per-image correctness, while B3 holds 4.80 times the parameters and 4.76 times the disk
+footprint. That is the same shape of result as RQ1, one step further along: the capacity
+that separates these architectures is not what limits performance on this dataset.
+
+\subsection{Does the native resolution explain it?}
+
+\begin{table}[htbp]
+\centering
+\caption{The three resolution pairs. Each row holds architecture, strategy, split, seed
+and schedule fixed and varies only the input size, so the difference is attributable to
+resolution alone.}
+\label{tab:resolution-pairs}
+\small
+\begin{tabular}{@{}lccccl@{}}
+\toprule
+\textbf{Strategy} & \textbf{224 (macro F1)} & \textbf{300 (macro F1)} & \textbf{$\Delta$}
+& \textbf{$p$ (Holm)} & \textbf{Significant} \\
+\midrule
+Augmentation only   & 0.674 (E7) & 0.700 (E10) & $+0.026$ & 0.085 & No \\
+Weighted CE         & 0.614 (E8) & 0.738 (E11) & $+0.123$ & 1.92e--05 & \textbf{Yes} \\
+Random oversampling & 0.704 (E9) & 0.714 (E12) & $+0.010$ & 0.190 & No \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/08_resolution_ablation.pdf}
+\caption{EfficientNet-B3 at 224 against 300 pixels, by strategy. Everything other than
+the input size is identical within each pair.}
+\label{fig:resolution}
+\end{figure}
+
+The native resolution helps in all three pairs, but by amounts that differ by an order of
+magnitude, and only one difference survives correction.
+
+Under augmentation-only and oversampling the gain is 0.026 and 0.010 respectively, and
+neither reaches significance. Under weighted cross-entropy the gain is 0.123, and it does
+($p = 1.92 \times 10^{-5}$). \textbf{Input resolution matters for EfficientNet-B3 only in
+combination with weighted cross-entropy.}
+
+The pattern is consistent with the interpretation offered for ResNet-50 in
+Section~\ref{sec:results-rq2}. Weighted cross-entropy is the highest-variance condition
+in the study: it multiplies the loss on a dermatofibroma example by 12.578 against 0.214
+for a nevus. E8, the 224-pixel weighted-CE run, is the weakest B3 configuration at 0.614.
+Raising the input resolution appears to give the network enough additional signal per
+image to cope with that reweighting, and the effect is largest precisely where the run
+was struggling. Where B3 was already doing well, more pixels added little.
+
+This is the question the published record cannot answer. Comparisons that give
+EfficientNet its native resolution and the baselines theirs vary architecture and input
+size together (Section~\ref{sec:lit-arch}), so a reported EfficientNet advantage cannot
+be attributed to either. Here the two are separated, and the answer is that resolution
+contributes materially in one of three conditions and negligibly in the other two.
+
+\subsection{Why this does not change the deployment recommendation}
+\label{sec:b3-deployment}
+
+E11 attains the highest macro F1 (0.738), the highest balanced accuracy (0.770) and the
+highest RQ2 clinical-recall score (0.772) of any run in this thesis. Taken on accuracy
+alone it is the best configuration produced here.
+
+It is also the least deployable. At 300 pixels on the ARM64 host, EfficientNet-B3 runs at
+126.5~ms per image against MobileNetV2's 14.2~ms, a factor of 8.9, and occupies 43.18~MB
+against 9.07~MB (Table~\ref{tab:efficiency}). The thesis's question is not which
+architecture reaches the highest number; it is what a deployable architecture costs. On
+that question B3 answers in the wrong direction on both axes that matter for an offline
+mobile tool.
+
+The ablation therefore leaves the conclusion of Section~\ref{sec:results-rq1} intact and
+adds a qualification to it. MobileNetV2 remains the recommended deployment choice, and
+the reason is now better supported: it is statistically indistinguishable from both a
+network ten times its size and a network five times its size, while being the fastest and
+smallest of the three. EfficientNet-B3 would be the right choice for a
+server-side deployment where latency and footprint are not binding, and Chapter~9 records
+that as the boundary of what this result supports.
+
+\section{RQ3: Efficiency}
+\label{sec:results-rq3}
+
+\input{chapters/generated/efficiency.tex}
+
+Measurements were taken on two machines, each pinned to a single CPU thread and each
+otherwise idle. Standard deviations are small relative to the means (0.2--5.2~ms on means
+of 14--133~ms), so the comparisons are not dominated by scheduling noise.
+
+MobileNetV2 holds 10.53 times fewer parameters than ResNet-50 and occupies 10.40 times
+less disk, at 9.07~MB against 94.30~MB. That is the deployability case in one line: a
+9~MB model ships inside a mobile application, and a 94~MB one does not comfortably.
+Parameter count and disk size are properties of the architecture and do not vary by host;
+latency, as the next section shows, is a different matter.
+
+\subsection{Parameter count does not predict latency}
+\label{sec:results-latency-surprise}
+
+The latency columns do not follow the parameter column, and they do not agree with each
+other either. Both facts matter.
+
+On both hosts MobileNetV2 is the fastest of the three, and on both it is faster by a
+margin far smaller than its parameter advantage would suggest. It holds 10.53 times fewer
+parameters than ResNet-50 but is only 2.2 times faster on ARM64. Parameter count is a
+poor predictor of inference time.
+
+The stronger result is that \textbf{the ordering of ResNet-50 and EfficientNet-B3
+reverses between the two CPU architectures}. On ARM64, ResNet-50 runs at 31.1~ms and
+EfficientNet-B3 at 89.5~ms, so B3 is 2.9 times slower despite holding 2.2 times fewer
+parameters. On x86-64 the same two models run at 133.2~ms and 66.9~ms, so B3 is 2.0 times
+\emph{faster}. The same weights, the same input, opposite conclusions.
+
+The mechanism is arithmetic intensity. ResNet-50's dense convolutions perform many
+operations per byte of memory traffic; the depthwise separable convolutions in
+MobileNetV2 and EfficientNet-B3 perform few. Whether that trade is favourable depends on
+where the host binds. The ARM machine used here reaches dense convolutions through
+heavily optimised vendor kernels and handles ResNet-50 well, while the single-threaded
+x86-64 host has no comparable advantage and pays ResNet-50's full operation count.
+
+Two consequences follow for this thesis. First, MobileNetV2's advantage is the only part
+of the efficiency picture that is robust across hosts, which strengthens rather than
+weakens the deployability argument. Second, any efficiency claim about a specific pair of
+heavier architectures is a claim about a specific CPU, and reporting it without naming
+the host is not meaningful. Since the deployment target motivating this work is a mobile
+device, and mobile devices are ARM, the ARM64 column is the relevant one for the thesis's
+own argument. The x86-64 column is reported because omitting it would have left a
+conclusion stated more broadly than the evidence supports.
+
+EfficientNet-B3's 131 weight layers against ResNet-50's 54
+(Table~\ref{tab:arch-structure}) contribute on both hosts: depth is sequential, and a deep
+narrow network offers less work per layer to parallelise.
+
+\subsection{Resolution scales latency sub-linearly}
+
+EfficientNet-B3 at 300 pixels processes 1.79 times the pixels of the same network at 224
+and takes 1.41 times as long on ARM64 and 1.74 times on x86-64. The gap between those two figures is fixed overhead that
+does not scale with input area: layer launches, weight loading and memory allocation.
+
+The practical reading is that B3's native resolution costs roughly 40 to 75\% more
+inference time than running it at 224, depending on host. Whether that is worth paying depends on whether the larger input buys
+accuracy, which is what runs E10 to E12 are designed to establish and which
+Section~\ref{sec:results-ablation} will report.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/07_deployability.pdf}
+\caption{Deployment cost against melanoma detection. Left: model size on disk. Right: CPU
+inference latency. Points toward the upper left are preferable on both panels.}
+\label{fig:deployability}
+\end{figure}
+
+\subsection{RQ3 answered}
+
+MobileNetV2 is the most deployable of the three by every measure taken: smallest at
+9.07~MB, fewest parameters at 2.23~million, and fastest on both CPU architectures tested.
+It is the only one of the three whose advantage is robust to the choice of host.
+
+ResNet-50 and EfficientNet-B3 cannot be ranked against each other without naming a CPU.
+On the ARM64 host, which is the architecture mobile devices actually use, ResNet-50 is
+2.9 times faster than EfficientNet-B3; on x86-64 it is 2.0 times slower.
+
+Combined with RQ1, where the melanoma F1 gap between the best MobileNetV2 and best
+ResNet-50 configurations was \RQoneGap, the trade-off is asymmetric in the lightweight
+model's favour: roughly a tenth of the size and half the latency, for a difference in
+melanoma F1 inside the threshold set in advance.

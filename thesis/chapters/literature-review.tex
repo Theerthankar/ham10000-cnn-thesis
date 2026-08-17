@@ -1,0 +1,153 @@
+\section{Scope of the Review}
+
+This review covers four things: the benchmark this thesis uses, the architectures it
+compares, the class-imbalance remedies it crosses them with, and the statistical method
+it uses to decide whether two models actually differ. Work on segmentation, multimodal
+fusion and explainability is noted where it bears on the comparison but is not the
+subject here.
+
+\section{HAM10000 as a Benchmark}
+\label{sec:lit-ham}
+
+HAM10000 was released by Tschandl et al.~\cite{tschandl2018ham10000} as a deliberate
+answer to the shortage of public dermatoscopic data. It contains 10{,}015 images across
+seven diagnostic categories, collected over two decades from a Vienna clinic and an
+Australian practice, and it became the training set for the ISIC 2018
+challenge~\cite{codella2019isic}. Ground truth is more defensible than in most
+comparable sets: over half the cases are histopathologically confirmed rather than
+assigned by consensus.
+
+Two properties matter for what follows. The first is that images are indexed by
+\texttt{lesion\_id} as well as \texttt{image\_id}, because the same lesion is often
+photographed more than once. Any split that ignores this puts near-duplicates on both
+sides of the train/test boundary. The second is the class distribution, which is
+severely long-tailed: melanocytic nevi account for roughly two thirds of the set while
+dermatofibroma accounts for about one percent. The ratio between the most and least
+frequent class is close to 58 to 1.
+
+The literature is inconsistent about both. Reported HAM10000 accuracies range widely,
+and a meaningful part of that spread comes from protocol rather than method. Some studies
+split at image level, some at lesion level, and many do not say. Gao et
+al.~\cite{gao2024skinlitenet} report 98.97\% accuracy with a 284K-parameter network,
+which is difficult to reconcile with the difficulty other work reports on the same data
+unless the evaluation protocols differ substantially. This thesis takes the view that
+cross-paper accuracy comparison on HAM10000 is largely uninformative, and that the only
+comparisons worth trusting are ones run inside a single controlled pipeline.
+
+\section{Architectures}
+\label{sec:lit-arch}
+
+\subsection{Residual networks as the default baseline}
+
+He et al.~\cite{he2016resnet} introduced residual connections to make very deep networks
+trainable, and ResNet-50 has been the default medical-imaging backbone since. In
+dermatology specifically it appears constantly: Rezvantalab et
+al.~\cite{rezvantalab2020dermoscopy} benchmark it among four architectures on
+dermoscopic data, and Shams et al.~\cite{shams2025jcmr} use it as the reference point
+against lighter alternatives. Its ubiquity is the reason it serves as the heavyweight
+arm here. It is what a practitioner would reach for by default, so it is the right thing
+for a lightweight candidate to be measured against.
+
+\subsection{Efficiency-oriented designs}
+
+Howard et al.~\cite{howard2017mobilenets} introduced depthwise separable convolutions to
+cut the cost of a convolution by roughly an order of magnitude, and Sandler et
+al.~\cite{sandler2018mobilenetv2} refined this into MobileNetV2 with inverted residuals
+and linear bottlenecks. The design target was explicitly on-device inference.
+
+The dermatology literature has taken this up. Hussain et al.~\cite{eswa2024e2e} propose
+S-MobileNet for seven-class HAM10000 classification, and Gao et
+al.~\cite{gao2024skinlitenet} push further with a 284K-parameter module. Both report
+strong numbers. Neither reports a controlled comparison against a heavyweight baseline
+under identical conditions, which is the specific thing this thesis is built to provide.
+
+\subsection{EfficientNet and compound scaling}
+
+EfficientNet occupies a middle position: more capacity than MobileNetV2, far less than
+ResNet-50, with depth, width and input resolution scaled together rather than
+independently. Manole et al.~\cite{manole2024efficientnet} apply it to dermatological
+diagnosis and report 95.4\% validation accuracy on a four-class problem. Shams et
+al.~\cite{shams2025jcmr} compare ResNet-50, MobileNet and EfficientNet-B0 on DermNet and
+report 93\%, 94\% and 99\% respectively, which would make EfficientNet the clear choice
+if the comparison were controlled.
+
+It is not, and that is precisely the difficulty. EfficientNet variants are trained at
+their own native input resolutions, which increase with the variant index. B3 expects
+300 pixels where MobileNetV2 and ResNet-50 expect 224. A study that gives EfficientNet
+its native resolution and the baselines theirs has varied two things at once, and cannot
+separate architectural merit from input size. This thesis addresses that directly by
+running B3 at both resolutions with everything else held fixed, which is what makes the
+pair E7/E10 informative rather than merely additional.
+
+\section{Class Imbalance}
+\label{sec:lit-imbalance}
+
+Buda et al.~\cite{buda2018classimbalance} provide the most systematic treatment,
+examining imbalance across MNIST, CIFAR-10 and ImageNet. Three findings carry over.
+Imbalance measurably degrades CNN performance; oversampling is generally the strongest
+of the standard remedies; and oversampling does not induce the overfitting in CNNs that
+it can in classical models. The last point is the one most often assumed rather than
+tested, and it is worth testing on a dataset as skewed as HAM10000.
+
+Cui et al.~\cite{cui2019classbalanced} reweight by effective number of samples,
+generalising inverse-frequency weighting. That family of methods is what the weighted
+cross-entropy condition in this thesis implements, using $w_c = N / (K \cdot n_c)$. On
+the split used here that produces weights spanning 0.214 for nevi to 12.578 for
+dermatofibroma, a spread of roughly 59 to 1. Weights of that magnitude are worth
+treating as an intervention with side effects rather than a neutral correction.
+
+Lin et al.~\cite{lin2017focal} propose focal loss, down-weighting well-classified
+examples so training concentrates on hard ones. Le et al.~\cite{le2020classweightedfocal}
+combine it with class weighting on HAM10000 and report 93\% top-1 accuracy averaged
+across the seven classes. Focal loss is deliberately out of scope here, for reasons of
+factorial size rather than merit: adding it as a fourth strategy would take the design
+from twelve runs to sixteen. It is cited because a reviewer will ask, and because Le et
+al.\ is the closest published comparator to this work.
+
+\section{The Gap Le et al.\ Leaves Open}
+\label{sec:lit-gap}
+
+Le et al.~\cite{le2020classweightedfocal} is the nearest neighbour to this thesis and
+therefore the most useful thing to be precise about. They vary the loss function on
+HAM10000 while holding the architecture fixed at a modified ResNet-50, and they report
+accuracy averaged over classes.
+
+That leaves two things unanswered. The architecture never varies, so the study says
+nothing about what a lighter backbone would cost. And averaged accuracy hides the
+per-class picture, which is where the clinically relevant behaviour lives. A model can
+improve its average while getting worse at melanoma, and nothing in an averaged figure
+would reveal it.
+
+The same pattern holds more broadly. Across the surveyed corpus, studies vary one factor
+at a time (architecture, or loss, or sampling) and report an aggregate metric. No
+published HAM10000 result crosses architecture with imbalance strategy in a single
+controlled design while reporting per-class results for the malignant categories.
+
+\section{Deciding Whether Two Models Differ}
+\label{sec:lit-stats}
+
+Comparing two classifiers on one test set is a statistical question, and the wrong test
+is common. Dietterich~\cite{dietterich1998tests} evaluated five approximate tests for
+this purpose and found that when each model is trained once and evaluated on a single
+held-out set, McNemar's test is the only one with acceptable Type-I error. Tests
+assuming independent samples do not apply, because both models are evaluated on the same
+images.
+
+That regime is exactly this thesis's. Each architecture-strategy combination is one
+training run producing one set of predictions. McNemar's test operates on the discordant
+pairs, the images one model classifies correctly and the other does not, and ignores the
+cases where both agree. Agreement carries no information about which model is better.
+
+Running many such comparisons inflates the family-wise error rate, so correction is
+required. Holm-Bonferroni is used here as a uniformly more powerful alternative to plain
+Bonferroni that makes no additional assumptions about dependence between tests.
+
+\section{What the Review Establishes}
+
+Four things follow from the above and shape the rest of this thesis. Cross-paper
+accuracy comparison on HAM10000 is unreliable, so the comparison must happen inside one
+pipeline. Per-class reporting is necessary because aggregate metrics hide the clinically
+important behaviour. Input resolution is a confound whenever EfficientNet is compared
+against 224-pixel baselines, and must be controlled explicitly. And McNemar's test with
+correction across a declared family is the appropriate way to decide whether an observed
+difference is real.

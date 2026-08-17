@@ -1,0 +1,22 @@
+\begin{table}
+\caption{Precision, recall and F1 on the two clinical classes. The final column is the RQ2 selection criterion.}
+\label{tab:clinical}
+\begin{tabular}{llrlrrrrrrr}
+\toprule
+Exp & Architecture & Input & Strategy & P (MEL) & R (MEL) & F1 (MEL) & P (BCC) & R (BCC) & F1 (BCC) & RQ2 score \\
+\midrule
+E1 & MobileNetV2 & 224 & Augmentation only & 0.486 & 0.461 & 0.473 & 0.679 & 0.717 & 0.697 & 0.589 \\
+E2 & ResNet-50 & 224 & Augmentation only & 0.580 & 0.409 & 0.480 & 0.559 & 0.623 & 0.589 & 0.516 \\
+E3 & MobileNetV2 & 224 & Weighted CE & 0.340 & 0.635 & 0.442 & 0.603 & 0.660 & 0.631 & 0.648 \\
+E4 & ResNet-50 & 224 & Weighted CE & 0.382 & 0.548 & 0.450 & 0.407 & 0.208 & 0.275 & 0.378 \\
+E5 & MobileNetV2 & 224 & Random oversampling & 0.484 & 0.530 & 0.506 & 0.682 & 0.566 & 0.619 & 0.548 \\
+E6 & ResNet-50 & 224 & Random oversampling & 0.667 & 0.157 & 0.254 & 0.537 & 0.547 & 0.542 & 0.352 \\
+E7 & EfficientNet-B3 & 224 & Augmentation only & 0.486 & 0.600 & 0.537 & 0.750 & 0.679 & 0.713 & 0.640 \\
+E8 & EfficientNet-B3 & 224 & Weighted CE & 0.354 & 0.400 & 0.376 & 0.667 & 0.604 & 0.634 & 0.502 \\
+E9 & EfficientNet-B3 & 224 & Random oversampling & 0.503 & 0.670 & 0.575 & 0.673 & 0.660 & 0.667 & 0.665 \\
+E10 & EfficientNet-B3 & 300 & Augmentation only & 0.627 & 0.557 & 0.590 & 0.694 & 0.642 & 0.667 & 0.599 \\
+E11 & EfficientNet-B3 & 300 & Weighted CE & 0.466 & 0.713 & 0.564 & 0.721 & 0.830 & 0.772 & 0.772 \\
+E12 & EfficientNet-B3 & 300 & Random oversampling & 0.585 & 0.539 & 0.561 & 0.795 & 0.585 & 0.674 & 0.562 \\
+\bottomrule
+\end{tabular}
+\end{table}

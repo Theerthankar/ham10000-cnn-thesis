@@ -1,0 +1,251 @@
+\section{The Headline Result}
+\label{sec:disc-headline}
+
+MobileNetV2 achieved higher macro F1 than ResNet-50 under all three imbalance
+strategies, and under two of the three the two architectures were statistically
+indistinguishable on per-image correctness. A network holding 2.23~million trainable
+parameters was never beaten by one holding 23.52~million, on the same data, through the
+same pipeline, with the same optimiser and schedule.
+
+The temptation is to read this as MobileNetV2 being the better architecture. That reading
+is too strong, and the more defensible one is more interesting: at this dataset size,
+capacity beyond MobileNetV2's was not the binding constraint. HAM10000 provides 8{,}012
+training images across seven classes, of which the three rarest contribute 467 between
+them. ResNet-50 has roughly ten times the parameters to fit from the same evidence, and
+the extra capacity had nothing useful to consume. What it did instead is the subject of
+Section~\ref{sec:disc-instability}.
+
+That distinction matters for how far the result generalises. It supports the claim that
+a lightweight backbone is sufficient for HAM10000-scale dermatoscopic classification. It
+does not support a claim that MobileNetV2 would remain competitive given an order of
+magnitude more data, and nothing here tests that.
+
+\section{ResNet-50's Optimisation Behaviour}
+\label{sec:disc-instability}
+
+The ResNet-50 runs did not descend smoothly. Measuring the standard deviation of the
+epoch-to-epoch change in validation loss, averaged within each architecture, gives 0.130
+for MobileNetV2 and 0.221 for ResNet-50, a factor of 1.70. E4 produced a single-epoch
+increase in validation loss of 1.207 and moved in the wrong direction on 23 of its 49
+epoch transitions, close to half.
+
+This is not a defect in the implementation. Every relevant source file was reviewed and
+the behaviour is consistent with a known sensitivity: a deep, BatchNorm-heavy network
+fine-tuned with Adam at $10^{-3}$, with no warmup, no learning-rate schedule and no
+weight decay. Section~\ref{sec:method-regularisation} records those omissions, and they
+are the most plausible cause. MobileNetV2 is shallower and its inverted-residual blocks
+appear more forgiving of the same configuration.
+
+The learning rate was deliberately not lowered for ResNet-50 alone. Doing so would have
+tuned one arm of a comparison whose entire premise is that only the architecture varies,
+and the resulting numbers would have answered a different question than the one asked.
+The instability is therefore reported as a finding.
+
+It is a finding with practical weight. A network that trains reliably at a shared
+learning rate is cheaper to work with than one requiring its own schedule, and that cost
+is real even though it appears in no accuracy table. Combined with the efficiency
+results, it strengthens rather than complicates the case for the lightweight model.
+
+\section{Early Stopping Chose the Wrong Checkpoints}
+\label{sec:disc-earlystop}
+
+The protocol stops on validation loss and evaluates the checkpoint with the lowest
+validation loss. Validation loss is not the reported metric. Macro F1 is, and the two do
+not peak at the same epoch.
+
+\begin{table}[htbp]
+\centering
+\caption{Macro F1 at the selected checkpoint against the best macro F1 reached during
+training. The final column is what checkpoint selection on validation loss cost.}
+\label{tab:checkpoint-cost}
+\small
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+\textbf{Exp} & \textbf{Best val-loss epoch} & \textbf{Macro F1 there} &
+\textbf{Best macro F1 epoch} & \textbf{Best macro F1} & \textbf{Cost} \\
+\midrule
+E1 & 28 & 0.744 & 28 & 0.744 & 0.000 \\
+E2 & 36 & 0.640 & 29 & 0.672 & 0.032 \\
+E3 & 24 & 0.613 & 30 & 0.650 & 0.038 \\
+E4 & 46 & 0.511 & 49 & 0.571 & \textbf{0.059} \\
+E5 & 20 & 0.721 & 30 & 0.724 & 0.003 \\
+E6 &  6 & 0.534 & 11 & 0.601 & \textbf{0.067} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+E6 is the clearest case. Its validation loss reached its minimum at epoch 6 and never
+improved again, so patience expired at epoch 16 and the epoch-6 weights were the ones
+evaluated on test. Validation macro F1 at epoch 6 was 0.534. By epoch 11 it had reached
+0.601 and it was still above 0.59 at the point training stopped. The reported test
+results for E6, including its melanoma recall of 0.157, come from a model taken ten
+epochs before its best measured configuration.
+
+This is a limitation of the protocol rather than of ResNet-50, but it does not fall
+evenly. The cost is 0.000 and 0.003 for two of the three MobileNetV2 runs and 0.059 and
+0.067 for two of the three ResNet-50 runs. The reason is the instability of
+Section~\ref{sec:disc-instability}: a noisy validation loss curve has an argmin that
+lands somewhere arbitrary, whereas a smooth one has an argmin near the genuine optimum.
+
+Part of the gap this thesis reports between the two architectures is therefore
+attributable to the checkpoint selection rule interacting with optimisation noise, not to
+the architectures themselves. The direction of the effect favours MobileNetV2, which is
+the model the thesis concludes for, so this is a caveat that cuts against its own
+conclusion and is stated for that reason.
+
+The protocol was not changed after this was discovered. Changing the selection rule
+mid-study, after seeing which runs it disadvantaged, would be a considerably worse
+methodological error than the one it corrects. Section~\ref{sec:future} records
+selection on validation macro F1 as the first item of future work.
+
+\section{Why the Imbalance Remedies Hurt ResNet-50}
+\label{sec:disc-remedies}
+
+RQ2 produced an asymmetric answer. Weighted cross-entropy improved MobileNetV2's clinical
+recall criterion from 0.589 to 0.648, while both remedies reduced ResNet-50's: from 0.516
+to 0.378 under weighted cross-entropy and to 0.352 under oversampling. Interventions
+designed to help rare classes made one architecture measurably worse at those classes.
+
+The explanation follows from the two preceding sections. Both remedies increase gradient
+variance. Weighted cross-entropy multiplies the loss on a dermatofibroma example by 12.578
+against 0.214 for a nevus, a ratio of 58.8 (Table~\ref{tab:weights}), so a single rare
+example can dominate a batch. Oversampling achieves a similar effect by repetition. On a
+network already optimising unstably at the shared learning rate, added gradient variance
+compounds the problem rather than being absorbed by it.
+
+E4 is the endpoint of that interaction: ResNet-50's sensitivity meets the most aggressive
+reweighting, it never converges within 50 epochs, and it produces the weakest result in
+the study. Its basal cell carcinoma recall of 0.208 is the lowest figure in the entire
+factorial, on a class it was explicitly reweighted to favour.
+
+The general claim this supports is narrow and worth stating precisely: imbalance
+remediation is not architecture-neutral. Its effect depends on how the underlying
+optimisation behaves, and a remedy that helps one backbone can harm another under
+otherwise identical conditions. Gap~2 of Section~\ref{sec:gaps} asked whether the best
+strategy depends on the architecture. It does, and the mechanism is optimisation
+stability rather than anything about the classes themselves.
+
+\section{Precision, Recall, and What Should Be Deployed}
+\label{sec:disc-tradeoff}
+
+Table~\ref{tab:clinical} shows configurations distributed along a trade-off curve rather
+than ordered from worse to better. E3 finds 63.5\% of melanomas and is correct on 34.0\%
+of its melanoma calls. E6 is correct on 66.7\% of its melanoma calls and finds 15.7\% of
+melanomas. On 115 test melanomas that is 73 found against 18.
+
+Neither is unambiguously better in the abstract, which is exactly why the criterion was
+fixed in advance rather than chosen once the numbers existed. Under a screening workflow
+where flagged lesions receive specialist review, a false negative is an untreated cancer
+and a false positive is a consultation. E3's 42 missed melanomas against E6's 97 is the
+comparison that matters, and it is not close.
+
+The honest qualification is that this reasoning depends on the downstream workflow. A
+tool whose outputs are acted on without review, or one deployed where referral capacity
+is the binding constraint, would weight precision differently. The criterion encodes an
+assumption about deployment context, and it should be re-derived rather than inherited if
+that context changes.
+
+\section{Comparison with Published Work}
+\label{sec:disc-comparison}
+
+The accuracy figures here sit below much of the HAM10000 literature. Gao et
+al.~\cite{gao2024skinlitenet} report 98.97\%; Le et al.~\cite{le2020classweightedfocal}
+report 93\% averaged across classes. The best accuracy in this study is 0.801.
+
+Direct comparison is not meaningful, for reasons established in
+Section~\ref{sec:lit-ham}. Reported HAM10000 accuracy depends heavily on whether the
+split is at lesion or image level, and studies frequently do not state which. An
+image-level split places photographs of the same lesion on both sides of the boundary,
+and on a dataset where 1{,}956 of 7{,}470 lesions are photographed more than once, that
+inflates the result by an amount no reader can estimate from the paper. The lesion-level
+protocol used here is the stricter choice and produces lower, better-founded numbers.
+
+The comparison this thesis can make is internal, which is the point of running everything
+through one pipeline. All twelve configurations share a split, an augmentation pipeline,
+an optimiser, a schedule and a GPU. Differences between them are attributable to the
+factors that varied, and that is a claim none of the cross-paper comparisons in the
+surveyed corpus can make.
+
+\section{What the Ablation Adds, and What It Does Not}
+\label{sec:disc-ablation}
+
+EfficientNet-B3 produced the highest-scoring run in the study. E11 reaches macro F1 0.738
+against the best confirmatory run's 0.681, and it does so while holding 4.80 times
+MobileNetV2's parameters. A thesis arguing for the lightweight model has to deal with
+that honestly rather than around it.
+
+Three things make it less awkward than it first appears.
+
+The first is that at matched input resolution, B3 and MobileNetV2 are not statistically
+distinguishable. All three of those comparisons fail to reject after Holm correction, two
+of them at $p = 1.000$. B3's headline advantage comes from E11, which is a 300-pixel run,
+and the resolution pairs show that the 300-pixel input is what carries it: E8 to E11 is
+the single largest and only significant resolution effect in the ablation. The
+architecture is not doing the work; the extra pixels are.
+
+The second is that E11's advantage is bought with exactly the resource the thesis is
+about. At 300 pixels B3 costs 8.9 times MobileNetV2's inference time on ARM64 and 4.8
+times its disk footprint. For a screening tool that runs on a phone, that is not a
+favourable trade at any accuracy. The question this thesis asks is what a deployable
+architecture gives up, and B3 answers a different question well.
+
+The third is a caution about the ablation's own status. E7 to E12 were added after the
+confirmatory design was fixed and run. They are analysed in a separate family for that
+reason (Section~\ref{sec:stat-families}), and no amount of good performance changes the
+fact that they were not pre-registered. Treating E11 as the thesis's headline result
+would mean promoting a post-hoc addition over the design that was specified in advance,
+which is the precise failure mode the two-family structure exists to prevent.
+
+What the ablation does establish is worth stating plainly. A third architecture, of
+intermediate size and from a different design family, lands in the same place as the
+other two: indistinguishable from a much smaller network at matched input size. Three
+architectures spanning 2.2 to 23.5 million parameters perform comparably on this dataset,
+which is stronger evidence for the capacity argument of
+Section~\ref{sec:disc-headline} than the two-architecture comparison could provide alone.
+
+It also produces the one clean methodological result in the ablation: input resolution
+matters for B3 only under weighted cross-entropy, the highest-variance training condition
+in the study. That is a finding the published literature cannot report, because it varies
+architecture and resolution together.
+
+\section{Limitations}
+\label{sec:disc-limitations}
+
+\paragraph{Checkpoint selection.} Documented in
+Section~\ref{sec:disc-earlystop}. It disadvantages the noisier architecture and
+contributes an unknown fraction of the reported architecture gap. This is the most
+consequential limitation in the thesis.
+
+\paragraph{Single seed.} Every configuration was trained once. Run-to-run variance under
+a different seed is therefore unmeasured, and small differences between configurations
+cannot be distinguished from seed noise. The McNemar tests address whether two
+\emph{specific trained models} differ, which is a narrower claim than whether two
+configurations differ in expectation. Multiple seeds per cell would cost twelve times the
+compute and would be the single most valuable addition to this design.
+
+\paragraph{E4 did not converge.} It exhausted the 50-epoch budget with validation loss
+still improving. Its numbers describe an unconverged model and are reported as such.
+
+\paragraph{Unmatched dropout.} MobileNetV2 carries $p = 0.2$, EfficientNet-B3 $p = 0.3$
+and ResNet-50 none (Section~\ref{sec:method-dropout}). The asymmetry favours the models
+with dropout, one of which the thesis concludes for.
+
+\paragraph{No weight decay or schedule.} Uniform across runs and therefore not a
+confound between conditions, but the probable cause of the instability that shaped
+several results.
+
+\paragraph{Rare-class sample sizes.} Dermatofibroma has 13 test images and vascular
+lesions 15. A single prediction moves dermatofibroma recall by 7.7 percentage points.
+Per-class figures for these classes are noisy and should not carry argumentative weight.
+
+\paragraph{Single dataset.} HAM10000 only, by design (Gap~1). Nothing here establishes
+that the ranking transfers to another dataset or another acquisition protocol.
+
+\paragraph{Demographic coverage.} HAM10000 carries no Fitzpatrick skin-type annotation
+and is drawn from two predominantly light-skinned populations. Whether these results hold
+across skin tones is untested and untestable on this data. For a tool intended to widen
+access to screening, this is a serious gap rather than a technical footnote.
+
+\paragraph{No qualitative analysis.} No Grad-CAM or misclassification review was
+performed, so there is no evidence about whether the models attend to lesions rather
+than to acquisition artefacts such as hair, rulers or ink markings.

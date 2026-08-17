@@ -1,0 +1,73 @@
+\documentclass[12pt,a4paper]{srhthesis}
+
+\input{preamble/packages.tex}
+\input{preamble/thesis-details.tex}
+\input{preamble/bib-setup.tex}
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Code listings. Kept plain: this is a thesis, not a syntax-highlighting demo,
+% and the point of every snippet here is that it is the code that actually ran.
+\definecolor{codebg}{gray}{0.96}
+\definecolor{codecomment}{rgb}{0.35,0.42,0.35}
+\definecolor{codekw}{rgb}{0.10,0.15,0.45}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  commentstyle=\color{codecomment}\itshape,
+  keywordstyle=\color{codekw}\bfseries,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=7pt,
+  frame=leftline,
+  framesep=6pt,
+  rulecolor=\color{gray},
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  captionpos=b,
+  xleftmargin=14pt,
+  language=Python,
+}
+
+% Numbers generated from runs/ by scripts/build_thesis_tables.py
+\input{chapters/generated/macros.tex}
+
+\begin{document}
+
+\maketitle
+
+\input{chapters/abstract.tex}
+\input{chapters/abbreviations.tex}
+
+\chapter{Introduction and Motivation}
+\input{chapters/introduction.tex}
+
+\chapter{Literature Review}
+\input{chapters/literature-review.tex}
+
+\chapter{Research Gap, Questions and Objectives}
+\input{chapters/research-gap.tex}
+
+\chapter{Data}
+\input{chapters/data.tex}
+
+\chapter{Methodology}
+\input{chapters/methodology.tex}
+
+\chapter{Evaluation Method}
+\input{chapters/evaluation-method.tex}
+
+\chapter{Results}
+\input{chapters/results.tex}
+
+\chapter{Discussion}
+\input{chapters/discussion.tex}
+
+\chapter{Conclusion and Future Work}
+\input{chapters/conclusion.tex}
+
+\printbibliography[heading=bibintoc]
+
+\end{document}

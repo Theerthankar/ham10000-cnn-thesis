@@ -1,0 +1,14 @@
+# torch and torchvision are preinstalled on the RunPod PyTorch template.
+# Only install them here if `import torch` fails, and match the CUDA build to
+# the pod rather than letting pip pull a CPU-only wheel over a working one.
+# torch>=2.1
+# torchvision>=0.16
+
+numpy>=1.24
+pandas>=2.0
+scikit-learn>=1.3
+Pillow>=10.0
+matplotlib>=3.7
+statsmodels>=0.14
+jupyter>=1.0
+ipywidgets>=8.0

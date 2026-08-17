@@ -1,0 +1,240 @@
+\section{Why Not Accuracy}
+\label{sec:eval-why}
+
+Equation~\ref{eq:naive} established that a constant classifier scores 66.95\% on this
+dataset. Any metric that a useless model can score well on is not a metric that
+distinguishes useful models from each other. Accuracy is reported in the results tables
+because omitting it would look evasive, and it is used to decide nothing.
+
+The metrics that do the work are per-class, and two classes carry the weight. Melanoma
+is the class whose misdiagnosis is lethal. Basal cell carcinoma is the most common
+malignancy in the set. Together they are 16.2\% of the data and essentially all of the
+clinical risk.
+
+\section{Metrics}
+\label{sec:eval-metrics}
+
+For each class $c$, with $TP_c$, $FP_c$ and $FN_c$ the true positives, false positives
+and false negatives:
+
+\begin{align}
+  \mathrm{precision}_c &= \frac{TP_c}{TP_c + FP_c} \label{eq:precision}\\[0.4em]
+  \mathrm{recall}_c    &= \frac{TP_c}{TP_c + FN_c} \label{eq:recall}\\[0.4em]
+  \mathrm{F1}_c        &= 2 \cdot \frac{\mathrm{precision}_c \cdot \mathrm{recall}_c}
+                                       {\mathrm{precision}_c + \mathrm{recall}_c}
+                          \label{eq:f1}
+\end{align}
+
+The asymmetry between the two error types is the whole reason precision and recall are
+reported separately rather than only as their harmonic mean. For melanoma, $FN$ is a
+cancer sent home as benign. $FP$ is a healthy patient referred for a second look. In a
+screening context where a dermatologist reviews the flagged cases, these are not
+comparable costs, and a single F1 figure conceals which way a given configuration is
+erring.
+
+Three aggregate metrics are also reported. Macro F1 is the unweighted mean of per-class
+F1, giving each class equal weight regardless of frequency, which is what makes it
+informative here where accuracy is not. Balanced accuracy is the mean of per-class
+recall. Macro AUC-OvR is the one-versus-rest area under the ROC curve averaged over
+classes, computed from predicted probabilities rather than hard labels, and is therefore
+insensitive to the decision threshold.
+
+A $7 \times 7$ confusion matrix is reported per run. Aggregates say how much a model got
+wrong; the confusion matrix says what it confused with what, which is the part a
+clinician would ask about.
+
+\section{Selection Criteria}
+\label{sec:eval-criteria}
+
+The criteria fixed in Chapter~3 are restated here in the form the analysis code
+implements.
+
+For RQ2, the score for each run is the unweighted mean of recall on the two clinical
+classes, and the best configuration per architecture is the arg-max:
+
+\begin{lstlisting}[caption={The RQ2 criterion, \texttt{scripts/build\_tables.py}.},
+                   label={lst:rq2}]
+def rq2_score(exp: str) -> float:
+    return (report(exp, "mel", "recall") + report(exp, "bcc", "recall")) / 2
+\end{lstlisting}
+
+For RQ1, the winners under that criterion are compared on melanoma F1 against the 0.05
+threshold. Because ``best'' is a definitional choice, Chapter~7 also reports the
+comparison under the alternative reading where best means highest macro F1. If the two
+readings disagree about whether RQ1 passes, that is a finding about the fragility of the
+criterion and is reported as one.
+
+RQ1 is computed over the confirmatory experiments only, which the code enforces rather
+than leaves to discipline:
+
+\begin{lstlisting}[caption={RQ1 restricted to the confirmatory factorial,
+\texttt{scripts/build\_tables.py}.}, label={lst:rq1-scope}]
+# RQ1 is defined over the confirmatory pair only. B3 is an ablation and does
+# not replace either incumbent in the pre-registered question.
+conf = [e for e in exps if e in CONFIRMATORY_EXPERIMENTS]
+mob = [e for e in conf if EXPERIMENTS[e]["architecture"] == "mobilenet_v2"]
+res = [e for e in conf if EXPERIMENTS[e]["architecture"] == "resnet50"]
+\end{lstlisting}
+
+\section{Frequency Tiers}
+\label{sec:eval-tiers}
+
+Per-class metrics across seven classes are detailed but hard to read as a whole. As a
+secondary view, classes are grouped into a majority tier (nv, bkl, mel) and a minority
+tier (akiec, vasc, df) by training frequency, and mean F1 is reported for each.
+
+This is a compression of information already present in the per-class table, included
+because it makes one specific question legible: whether a configuration is buying
+minority-class performance at the expense of the majority. A run whose minority-tier
+mean exceeds its majority-tier mean has inverted the usual ordering, which is a strong
+signal about what the imbalance remedy did.
+
+\section{Efficiency Measurement}
+\label{sec:eval-efficiency}
+
+RQ3 quantities are measured, not quoted. Parameter count is the sum over parameters with
+\texttt{requires\_grad}. Model size is the serialised \texttt{state\_dict} in megabytes.
+Latency is wall-clock time for a single forward pass at batch size 1, measured on CPU
+after ten warm-up iterations, reported as mean and standard deviation over 100 timed
+runs.
+
+CPU rather than GPU because the deployment scenario motivating this thesis is an offline
+device with no accelerator. A GPU latency figure would be easy to obtain and would not
+speak to the question.
+
+EfficientNet-B3 is measured at both 224 and 300 pixels, since latency scales with input
+area and a single figure would misrepresent it.
+
+\begin{lstlisting}[caption={Latency measurement, \texttt{scripts/benchmark\_efficiency.py}.},
+                   label={lst:latency}]
+dummy = torch.randn(1, 3, image_size, image_size, device=device)
+times_ms = []
+with torch.no_grad():
+    for _ in range(WARMUP_RUNS):
+        model(dummy)
+    for _ in range(TIMED_RUNS):
+        start = time.perf_counter()
+        model(dummy)
+        times_ms.append((time.perf_counter() - start) * 1000)
+\end{lstlisting}
+
+Timing on shared or virtualised hardware is noisy, and the measurement host is recorded
+alongside the numbers so the figures can be read with that in mind. Where the standard
+deviation is large relative to the mean, the comparison between architectures remains
+informative because all are measured under identical conditions, but the absolute values
+should not be treated as a specification.
+
+\section{Statistical Testing}
+\label{sec:eval-stats}
+
+\subsection{McNemar's test}
+
+Following Dietterich~\cite{dietterich1998tests}, comparisons use McNemar's paired test.
+For two models evaluated on the same test set, the $2 \times 2$ contingency table counts
+images by whether each model classified them correctly:
+
+\begin{table}[htbp]
+\centering
+\caption{McNemar contingency table. Only $b$ and $c$ enter the test.}
+\label{tab:mcnemar-table}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+& \textbf{B correct} & \textbf{B wrong} \\
+\midrule
+\textbf{A correct} & $a$ & $b$ \\
+\textbf{A wrong}   & $c$ & $d$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The null hypothesis is $b = c$: the two models disagree equally often in both
+directions. Cells $a$ and $d$ are discarded, which is the essential property. Images both
+models handle identically carry no information about which is better, and on a dataset
+where two thirds of images belong to an easy majority class, a test that counted them
+would be dominated by agreement.
+
+The exact binomial form is used when $b + c < 25$, where the chi-squared approximation is
+unreliable, and the continuity-corrected chi-squared form otherwise. The selection is
+automatic rather than chosen per comparison:
+
+\begin{lstlisting}[caption={Test variant selection, \texttt{scripts/statistical\_tests.py}.},
+                   label={lst:mcnemar}]
+discordant = a_only + b_only
+# Exact binomial when the discordant count is small; the chi-squared
+# approximation is unreliable there.
+use_exact = discordant < 25
+result = mcnemar([[both_right, a_only], [b_only, both_wrong]],
+                 exact=use_exact, correction=not use_exact)
+\end{lstlisting}
+
+Predictions are joined on \texttt{image\_id} rather than by row position, and the test
+asserts that both runs agree on ground truth before proceeding. A mismatch there would
+indicate the two runs saw different splits, which would invalidate the pairing.
+
+\subsection{Two families}
+\label{sec:stat-families}
+
+Twenty-one comparisons are declared, in two families corrected independently.
+
+The \textbf{confirmatory family} contains nine comparisons over E1 to E6: three
+cross-architecture within strategy, and six cross-strategy within architecture. These
+were specified before any results existed.
+
+The \textbf{exploratory family} contains twelve comparisons involving EfficientNet-B3:
+six against the incumbents at matched resolution, three across strategies within B3 at
+224, and three resolution pairs.
+
+\begin{lstlisting}[caption={The two declared families, \texttt{scripts/statistical\_tests.py}.},
+                   label={lst:families}]
+CONFIRMATORY = [
+    # architecture held constant within strategy
+    ("E1", "E2"), ("E3", "E4"), ("E5", "E6"),
+    # strategy varied within architecture
+    ("E1", "E3"), ("E1", "E5"), ("E3", "E5"),
+    ("E2", "E4"), ("E2", "E6"), ("E4", "E6"),
+]
+
+EXPLORATORY = [
+    # B3 at 224 against each incumbent, strategy held constant
+    ("E7", "E1"), ("E7", "E2"),
+    ("E8", "E3"), ("E8", "E4"),
+    ("E9", "E5"), ("E9", "E6"),
+    # strategy varied within B3 at 224
+    ("E7", "E8"), ("E7", "E9"), ("E8", "E9"),
+    # resolution: same architecture, same strategy, 224 against 300
+    ("E7", "E10"), ("E8", "E11"), ("E9", "E12"),
+]
+\end{lstlisting}
+
+Holm-Bonferroni correction is applied within each family at $\alpha = 0.05$. Holm is
+used rather than plain Bonferroni because it is uniformly more powerful while making no
+additional assumptions.
+
+Correcting separately is a decision with a consequence, and it should be visible rather
+than buried. Pooling all twenty-one into one family would apply a harsher correction to
+the nine pre-registered comparisons, so a decision taken after the confirmatory runs had
+completed could determine whether those earlier findings reach significance. Separate
+families prevent that. The cost is that the exploratory family's own error rate is
+controlled only within itself, which is the appropriate treatment for comparisons that
+were not planned in advance.
+
+The implementation refuses to correct over a partial family:
+
+\begin{lstlisting}[caption={Refusing partial correction, \texttt{scripts/statistical\_tests.py}.},
+                   label={lst:partial}]
+    """Holm-correct within one family.
+
+    Skips the family entirely if any member is missing rather than silently
+    correcting over a subset: dropping comparisons changes the correction and
+    would quietly make the surviving ones look more significant than they are.
+    """
+\end{lstlisting}
+
+\subsection{What a non-significant result means here}
+
+A comparison that fails to reach significance is not a null result to be passed over. It
+states that the two configurations disagree about equally often in both directions. When
+one of them is roughly a tenth the size of the other, that is a substantive finding about
+deployability rather than an absence of one, and Chapter~7 reports non-significant
+comparisons on the same footing as significant ones.

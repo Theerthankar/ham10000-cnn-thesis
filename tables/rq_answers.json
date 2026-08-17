@@ -1,0 +1,40 @@
+{
+  "rq1": {
+    "best_mobilenet": "E3",
+    "best_resnet": "E2",
+    "f1_mel_mobilenet": 0.442424,
+    "f1_mel_resnet": 0.479592,
+    "gap": 0.037168,
+    "threshold": 0.05,
+    "passes": true,
+    "macro_f1_best_alternative": {
+      "best_mobilenet": "E5",
+      "best_resnet": "E2",
+      "gap": 0.026632,
+      "passes": true
+    }
+  },
+  "rq2": {
+    "criterion": "mean(recall_MEL, recall_BCC)",
+    "scores": {
+      "E1": 0.588925,
+      "E2": 0.515669,
+      "E3": 0.64758,
+      "E4": 0.377687,
+      "E5": 0.548236,
+      "E6": 0.351846,
+      "E7": 0.639623,
+      "E8": 0.501887,
+      "E9": 0.664971,
+      "E10": 0.599016,
+      "E11": 0.771616,
+      "E12": 0.562018
+    },
+    "best_per_architecture": {
+      "mobilenet_v2": "E3",
+      "resnet50": "E2",
+      "efficientnet_b3": "E11"
+    }
+  },
+  "notes": []
+}

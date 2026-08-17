@@ -1,0 +1,168 @@
+\section{Three Gaps}
+\label{sec:gaps}
+
+Chapter~2 identified three specific things the published record leaves open. They are
+stated here as gaps because each one is addressed by a design decision in Chapter~5.
+
+\paragraph{Gap 1: no controlled architecture comparison.}
+Studies comparing backbones on HAM10000 vary the split protocol, augmentation pipeline,
+optimiser, batch size and epoch budget alongside the architecture. A reported difference
+between two networks therefore confounds the network with the experimental setup. There
+is no published result that isolates the architecture.
+
+\paragraph{Gap 2: no factorial crossing architecture with imbalance strategy.}
+Imbalance remedies are studied one at a time, usually against a single fixed backbone.
+Whether the best remedy depends on which architecture it is applied to is an open
+question, and one that matters: if the answer is yes, then any recommendation of a
+remedy without reference to the backbone is incomplete.
+
+\paragraph{Gap 3: aggregate metrics obscure the clinical picture.}
+A model predicting nevus for every HAM10000 image achieves 66.9\% accuracy while
+detecting no melanoma at all. Per-class F1 for the malignant categories is rarely the
+headline anywhere in the literature, and averaged accuracy can improve while melanoma
+detection degrades.
+
+\section{Research Questions}
+\label{sec:rqs}
+
+Each question below has a pass condition or selection rule fixed before any experiment
+was run. Fixing them in advance is what stops the analysis from drifting toward whatever
+the data happens to support.
+
+\subsection*{RQ1: the deployability gap}
+
+\emph{Does the best MobileNetV2 configuration achieve a melanoma F1 within 0.05 of the
+best ResNet-50 configuration?}
+
+\begin{equation}
+  \bigl| \mathrm{F1}_{\mathrm{MEL}}(\text{best MobileNetV2})
+       - \mathrm{F1}_{\mathrm{MEL}}(\text{best ResNet-50}) \bigr| \le 0.05
+  \label{eq:rq1}
+\end{equation}
+
+The threshold of 0.05 is a judgement, not a derivation, and is declared as such. It
+represents the largest difference in melanoma F1 that would still leave the lightweight
+model a defensible choice given roughly a tenfold reduction in size. A reviewer is
+entitled to disagree with the number; what matters is that it was set before the results
+existed rather than after.
+
+``Best'' is defined by the RQ2 criterion below, applied within each architecture.
+Section~\ref{sec:rq1-robustness} in Chapter~7 also reports the result under the
+alternative reading in which ``best'' means highest macro F1, so that the conclusion can
+be checked against both definitions.
+
+EfficientNet-B3 does not compete for RQ1. It was added after the confirmatory design was
+fixed, and allowing a later addition to displace one of the original arms would change
+what the pre-registered question was asking.
+
+\subsection*{RQ2: which imbalance strategy, for which architecture}
+
+\emph{For each architecture, which of augmentation-only, weighted cross-entropy or
+random oversampling maximises mean recall on the two clinically significant classes?}
+
+\begin{equation}
+  \text{best}(a) = \arg\max_{s \in S}
+    \frac{\mathrm{recall}_{\mathrm{MEL}}(a, s) + \mathrm{recall}_{\mathrm{BCC}}(a, s)}{2}
+  \label{eq:rq2}
+\end{equation}
+
+for architecture $a$ over strategies $S$.
+
+Recall rather than F1 or accuracy, because the two error types are not equally costly
+here. A melanoma classified as benign leaves untreated cancer. A benign lesion flagged
+as suspicious costs a dermatologist's time and a patient's anxiety. In a screening
+context that a specialist reviews downstream, the first error is much worse, and recall
+is the metric that penalises it.
+
+This choice has a consequence that Chapter~7 reports rather than hides: the criterion
+can select a different configuration than macro F1 would. Both readings are given.
+
+\subsection*{RQ3: what efficiency actually costs}
+
+\emph{How do the architectures compare on trainable parameter count, serialised model
+size, and CPU inference latency?}
+
+No pass threshold: the question is descriptive. The measurement conditions are fixed
+instead, and given in Chapter~6. Latency is measured on CPU because the deployment
+scenario under discussion is an offline device without a GPU, and a GPU figure would not
+speak to it.
+
+\section{The EfficientNet-B3 Ablation}
+\label{sec:ablation}
+
+EfficientNet-B3 was added at the request of the thesis supervisor after the original six
+runs were complete. It is handled as an ablation throughout, with two consequences.
+
+First, it does not enter RQ1, as stated above. Second, its comparisons form a separate
+statistical family with its own correction, described in Section~\ref{sec:stat-families}.
+Pooling twenty-one comparisons into one family would tighten the correction applied to
+the nine pre-registered ones, meaning a decision taken after seeing partial results
+could change whether the original findings reach significance. Keeping the families
+apart avoids that. It is a choice, and it is stated here rather than buried.
+
+The ablation asks two things:
+
+\begin{enumerate}
+  \item At matched input resolution, does EfficientNet-B3 outperform either incumbent?
+        Runs E7 to E9 use 224 pixels, identical to the other six, so any difference is
+        attributable to the architecture.
+  \item Does B3's native 300-pixel input account for its advantage, where one exists?
+        Runs E10 to E12 repeat E7 to E9 at 300 pixels with everything else unchanged,
+        making each pair a controlled test of resolution alone.
+\end{enumerate}
+
+The second question is the one the literature cannot currently answer, for the reason
+given in Section~\ref{sec:lit-arch}: published comparisons give each architecture its
+own native resolution and therefore vary two factors simultaneously.
+
+\section{Scope Exclusions}
+\label{sec:scope}
+
+The following are excluded deliberately. Each is a real limitation and is revisited in
+Chapter~9.
+
+\paragraph{Focal loss.} Excluded to keep the factorial at twelve runs rather than
+sixteen. Cited in Chapter~2 as the method used by the closest published
+comparator~\cite{le2020classweightedfocal}.
+
+\paragraph{Additional architectures.} DenseNet, ConvNeXt and Vision Transformers appear
+in the surveyed corpus~\cite{wei2023densenetconvnext} and are not included. The question
+being answered is what a deployable network costs against a standard baseline, and each
+extra backbone dilutes that without sharpening it.
+
+\paragraph{Ensembles and fusion.} Several surveyed studies report gains from
+ensembling~\cite{chiu2025ensemble, alruwaili2025fusion}. An ensemble of $n$ models
+occupies $n$ times the space, which is the opposite of the deployment constraint
+motivating this work.
+
+\paragraph{External validation.} All runs use HAM10000 only. Cross-dataset
+generalisation to ISIC 2019 or 2020 would require a second data pipeline and would
+reintroduce exactly the protocol variation that Gap~1 is about.
+
+\paragraph{Explainability.} Grad-CAM~\cite{selvaraju2017gradcam} and related methods are
+not applied. This is a limitation rather than a considered exclusion: attention maps
+would help confirm the models attend to lesions rather than to acquisition artefacts.
+
+\paragraph{Deployment itself.} The thesis quantifies the trade-off. It does not build a
+mobile application, and reports no on-device measurements.
+
+\section{Objectives}
+
+\begin{enumerate}
+  \item Implement a single training pipeline in which architecture, imbalance strategy
+        and input resolution are the only variables, with everything else held fixed and
+        verifiable.
+  \item Execute the $2\times3$ confirmatory factorial and the six-run EfficientNet-B3
+        ablation on identical hardware from one shared data split.
+  \item Report per-class precision, recall and F1 for all seven classes in every
+        configuration.
+  \item Answer RQ1 and RQ2 against the criteria fixed in Equations~\ref{eq:rq1}
+        and~\ref{eq:rq2}.
+  \item Measure RQ3 quantities directly rather than quoting them from the architecture
+        papers.
+  \item Test every declared comparison with McNemar's test under Holm-Bonferroni
+        correction, in the two families described above.
+  \item Persist per-run configuration, training history, test metrics and per-image
+        predictions so that every number in this document is regenerable from stored
+        artefacts.
+\end{enumerate}

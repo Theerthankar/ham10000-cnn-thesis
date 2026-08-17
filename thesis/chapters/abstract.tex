@@ -1,0 +1,40 @@
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Melanoma is survivable when found early and frequently fatal when it is not, so the
+practical value of automated skin lesion classification lies in triage rather than
+diagnosis. That places a constraint the accuracy literature rarely addresses: a triage
+tool has to run on the device in front of the patient. ResNet-50 serialises to 94.3~MB
+in the seven-class configuration used here; MobileNetV2 comes to 9.1~MB. The question is
+what that reduction costs.
+
+The published record answers it poorly. Studies comparing architectures on HAM10000 vary
+the split protocol, augmentation, optimiser and schedule alongside the architecture, so a
+reported gap between two backbones conflates the backbone with the setup. Headline
+accuracy compounds the problem: HAM10000 is 66.9\% benign nevi, so a model that answers
+nevus to every image scores 66.9\% without recognising a single melanoma.
+
+This thesis runs the comparison as a controlled experiment. A single pipeline holds the
+lesion-level split, augmentation, optimiser, batch size, schedule and hardware fixed, and
+varies only the architecture and the class-imbalance strategy. The result is a
+$2\times3$ factorial over MobileNetV2 and ResNet-50 crossed with augmentation-only,
+weighted cross-entropy and random oversampling, extended by a six-run EfficientNet-B3
+ablation at two input resolutions and analysed in a separate statistical family.
+Performance is reported per class, with melanoma and basal cell carcinoma as the
+headline, and comparisons are tested with McNemar's paired test under Holm-Bonferroni
+correction.
+
+Four findings emerge. MobileNetV2 achieved higher macro F1 than ResNet-50 under all
+three strategies, and under two of them the architectures were statistically
+indistinguishable on per-image correctness despite a ten-fold difference in parameter
+count. The best imbalance strategy depended on the architecture: weighted cross-entropy
+improved MobileNetV2's clinical recall while both remedies degraded ResNet-50's, which
+Chapter~8 traces to optimisation stability rather than to class frequency. And selecting
+checkpoints on validation loss, the protocol this work inherited, cost up to 0.067 macro
+F1 and did so unevenly across architectures, which is a limitation of the design rather
+than a property of the models and is reported as such.
+
+\vspace{1em}
+\noindent\textbf{Keywords:} skin lesion classification, HAM10000, class imbalance,
+MobileNetV2, ResNet-50, EfficientNet-B3, controlled factorial design, McNemar's test,
+deployable deep learning

@@ -1,0 +1,369 @@
+\section{Design}
+\label{sec:method-design}
+
+The design is the simplest one that answers the research questions: a single training
+pipeline with exactly two pluggable variables, and one run per cell of the resulting
+grid. Table~\ref{tab:factorial} gives the twelve runs.
+
+\begin{table}[htbp]
+\centering
+\caption{The twelve experiments. E1 to E6 are the confirmatory factorial, specified
+before any results were seen. E7 to E12 are the EfficientNet-B3 ablation, added
+afterwards and analysed separately.}
+\label{tab:factorial}
+\small
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Architecture} & \textbf{Input} & \textbf{Augmentation only} &
+\textbf{Weighted CE} & \textbf{Oversampling} \\
+\midrule
+\multicolumn{5}{@{}l}{\emph{Confirmatory factorial}} \\
+MobileNetV2     & 224 & E1 & E3 & E5 \\
+ResNet-50       & 224 & E2 & E4 & E6 \\
+\midrule
+\multicolumn{5}{@{}l}{\emph{Ablation}} \\
+EfficientNet-B3 & 224 & E7  & E8  & E9  \\
+EfficientNet-B3 & 300 & E10 & E11 & E12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The experiment registry is the single place where these definitions live. Nothing
+downstream hard-codes an architecture or a resolution; every script and notebook reads
+from this dictionary, which is what keeps the twelve runs from drifting apart.
+
+\begin{lstlisting}[caption={The experiment registry, \texttt{src/ham10000/constants.py}.},
+                   label={lst:registry}]
+EXPERIMENTS = {
+    # --- confirmatory 2x3 factorial, 224px ---
+    "E1":  {"architecture": "mobilenet_v2",    "strategy": "augmentation", "image_size": 224},
+    "E2":  {"architecture": "resnet50",        "strategy": "augmentation", "image_size": 224},
+    "E3":  {"architecture": "mobilenet_v2",    "strategy": "weighted_ce",  "image_size": 224},
+    "E4":  {"architecture": "resnet50",        "strategy": "weighted_ce",  "image_size": 224},
+    "E5":  {"architecture": "mobilenet_v2",    "strategy": "oversampling", "image_size": 224},
+    "E6":  {"architecture": "resnet50",        "strategy": "oversampling", "image_size": 224},
+    # --- EfficientNet-B3 ablation, matched 224px ---
+    "E7":  {"architecture": "efficientnet_b3", "strategy": "augmentation", "image_size": 224},
+    "E8":  {"architecture": "efficientnet_b3", "strategy": "weighted_ce",  "image_size": 224},
+    "E9":  {"architecture": "efficientnet_b3", "strategy": "oversampling", "image_size": 224},
+    # --- EfficientNet-B3 ablation, native 300px ---
+    "E10": {"architecture": "efficientnet_b3", "strategy": "augmentation", "image_size": 300},
+    "E11": {"architecture": "efficientnet_b3", "strategy": "weighted_ce",  "image_size": 300},
+    "E12": {"architecture": "efficientnet_b3", "strategy": "oversampling", "image_size": 300},
+}
+\end{lstlisting}
+
+\section{What Varies and What Does Not}
+\label{sec:method-contract}
+
+Table~\ref{tab:contract} is the experimental contract. Everything in the left column is
+identical across all twelve runs; only the right column changes.
+
+\begin{table}[htbp]
+\centering
+\caption{Experimental contract.}
+\label{tab:contract}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}p{7.4cm}p{5.6cm}@{}}
+\toprule
+\textbf{Held identical across all twelve} & \textbf{Varied} \\
+\midrule
+Split: lesion-level, stratified 80/10/10, seed 42, hash \texttt{f35ac1de18678182}
+  & \textbf{Architecture}: MobileNetV2, ResNet-50, EfficientNet-B3 \\
+Augmentation: HFlip, VFlip, rotation $\pm 30^{\circ}$, colour jitter 0.2
+  & \textbf{Imbalance strategy}: augmentation-only, weighted CE, oversampling \\
+Normalisation: ImageNet channel statistics
+  & \textbf{Input resolution}: 224 or 300 (EfficientNet-B3 only) \\
+Initialisation: ImageNet-pretrained, classifier head reset to 7 outputs & \\
+Optimiser: Adam, lr $=10^{-3}$, $\beta = (0.9, 0.999)$ & \\
+Batch size: 32 & \\
+Schedule: max 50 epochs, early stopping on validation loss, patience 10 & \\
+Dataloader workers: 16 & \\
+Seed: 42 & \\
+Hardware: one NVIDIA RTX A4500 for every run & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two entries in that table are less obvious than the rest and are worth justifying.
+
+\paragraph{Dataloader workers belong in the contract.} PyTorch seeds each dataloader
+worker from \texttt{base\_seed + worker\_id}, and the augmentation transforms draw from
+that per-worker generator. Changing the worker count therefore changes which random flip
+and rotation each image receives. It biases no condition, but it must be constant across
+runs for the comparison to remain controlled, which is why it is listed here rather than
+treated as an implementation detail.
+
+\paragraph{Batch size is fixed even where memory would allow more.} The 300-pixel runs
+have headroom on the GPU used. Increasing their batch size would speed them up and would
+also make them incomparable with the other nine, so it was not done.
+
+\section{Architectures}
+\label{sec:method-arch}
+
+All three backbones are loaded from \texttt{torchvision} with ImageNet-pretrained
+weights. Only the final linear layer is replaced, mapping to seven outputs. No layers are
+frozen; every run fine-tunes end to end.
+
+\begin{lstlisting}[caption={Backbone construction, \texttt{src/ham10000/models.py}. For
+MobileNetV2 and EfficientNet-B3 the classifier is a \texttt{Sequential(Dropout, Linear)},
+so replacing index 1 leaves the dropout at index 0 in place.},
+                   label={lst:models}]
+def build_model(architecture: str, num_classes: int = 7) -> nn.Module:
+    arch = architecture.lower()
+
+    if arch == "mobilenet_v2":
+        model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)
+        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
+        return model
+
+    if arch in ("resnet50", "resnet_50"):
+        model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        model.fc = nn.Linear(model.fc.in_features, num_classes)
+        return model
+
+    if arch in ("efficientnet_b3", "efficientnet-b3"):
+        model = models.efficientnet_b3(weights=models.EfficientNet_B3_Weights.IMAGENET1K_V1)
+        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
+        return model
+
+    raise ValueError(f"Unknown architecture: {architecture}. Expected one of {SUPPORTED}.")
+\end{lstlisting}
+
+Table~\ref{tab:arch-structure} reports the structural properties of the three networks
+as instantiated, counted from the constructed modules rather than quoted from the
+original papers.
+
+\begin{table}[htbp]
+\centering
+\caption{Structural properties, counted from the built models with a seven-class head.}
+\label{tab:arch-structure}
+\small
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+\textbf{Architecture} & \textbf{Trainable params} & \textbf{Weight layers} &
+\textbf{Blocks} & \textbf{Dropout} \\
+\midrule
+MobileNetV2     &  2{,}232{,}839 &  53 & 17 inverted residual & $p = 0.2$ \\
+ResNet-50       & 23{,}522{,}375 &  54 & 16 bottleneck        & none \\
+EfficientNet-B3 & 10{,}706{,}991 & 131 & 26 MBConv            & $p = 0.3$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two observations from that table shape later interpretation.
+
+First, ResNet-50's 54 weight layers exceed the 50 in its name. The
+\texttt{torchvision} implementation contains 53 convolutional modules because four are
+$1\times1$ projection convolutions on the shortcut path at stage transitions, which the
+canonical count omits. The figure is reported as counted so that it can be reconciled
+with the code.
+
+Second, EfficientNet-B3 is by far the deepest at 131 weight layers while holding less
+than half of ResNet-50's parameters. It is a deep, narrow network where ResNet-50 is
+shallower and wider. Chapter~7 shows this has consequences for inference latency that
+parameter count alone does not predict.
+
+\subsection{An asymmetry in dropout}
+\label{sec:method-dropout}
+
+The three backbones do not carry the same regularisation. MobileNetV2 ships with a
+dropout layer at $p = 0.2$ before its classifier, EfficientNet-B3 with $p = 0.3$, and
+ResNet-50 with none at all. Because only the final \texttt{Linear} is replaced, each
+network retains whatever its reference implementation provides.
+
+This is left as-is deliberately, and it is a defensible choice rather than an oversight,
+but it is also a genuine asymmetry between the arms and is declared as such. The
+comparison is intended to be between these networks as they are published and as anyone
+would actually deploy them. Matching dropout across all three would compare three
+variants that exist nowhere else. The cost is that a small part of any advantage held by
+the two networks with dropout could be attributable to the regularisation rather than to
+the architecture. Chapter~9 records the matched-dropout ablation as future work; it is a
+one-line change.
+
+\section{Imbalance Strategies}
+\label{sec:method-strategies}
+
+\begin{lstlisting}[caption={The three strategies, \texttt{src/ham10000/imbalance.py}.
+Each returns a dataloader and the loss function that goes with it.},
+                   label={lst:imbalance}]
+def make_train_loader(dataset, train_labels, strategy, batch_size=32,
+                      num_workers=2, pin_memory=True):
+    strategy = strategy.lower()
+    if strategy == "augmentation":
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True,
+                            num_workers=num_workers, pin_memory=pin_memory)
+        return loader, torch.nn.CrossEntropyLoss()
+
+    if strategy == "weighted_ce":
+        class_weights = inverse_frequency_weights(train_labels)
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True,
+                            num_workers=num_workers, pin_memory=pin_memory)
+        return loader, torch.nn.CrossEntropyLoss(weight=class_weights)
+
+    if strategy == "oversampling":
+        weights = sample_weights_for_oversampling(train_labels)
+        sampler = WeightedRandomSampler(weights, num_samples=len(weights), replacement=True)
+        loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler,
+                            num_workers=num_workers, pin_memory=pin_memory)
+        return loader, torch.nn.CrossEntropyLoss()
+
+    raise ValueError(f"Unknown imbalance strategy: {strategy}")
+\end{lstlisting}
+
+\paragraph{Augmentation-only (E1, E2, E7, E10).} Standard cross-entropy with shuffled
+sampling. The augmentation pipeline of Section~\ref{sec:data-preproc} still applies, as
+it does everywhere, but nothing is done about imbalance. This is the no-remediation
+control against which the other two are read.
+
+\paragraph{Weighted cross-entropy (E3, E4, E8, E11).} Per-class weights from
+Equation~\ref{eq:weights}, passed to the loss. Sampling is unchanged. The model sees the
+same images in the same proportions; the gradient contribution of each is rescaled.
+
+\paragraph{Random oversampling (E5, E6, E9, E12).} A
+\texttt{WeightedRandomSampler} draws with replacement at probability proportional to
+$1/n_c$, so an epoch contains roughly balanced class frequencies while the loss stays
+unweighted. Rare-class images recur many times per epoch; common-class images are
+frequently skipped. This is the condition that tests Buda et
+al.'s~\cite{buda2018classimbalance} finding that oversampling does not induce
+overfitting in CNNs.
+
+The distinction between the last two is worth keeping clear, because they are often
+treated as interchangeable. Weighted cross-entropy changes how much each example counts.
+Oversampling changes how often each example is seen. They arrive at a similar objective
+by different routes and, as Chapter~7 shows, do not produce the same result.
+
+\section{Training}
+\label{sec:method-training}
+
+\begin{lstlisting}[caption={Optimiser construction, \texttt{src/ham10000/train.py}.},
+                   label={lst:optim}]
+# No weight decay, no LR schedule, no gradient clipping. Held identical
+# across all twelve runs, and disclosed in the methodology chapter.
+optimizer = torch.optim.Adam(model.parameters(), lr=config.lr, betas=(0.9, 0.999))
+\end{lstlisting}
+
+Adam at $10^{-3}$ with default $\beta$ values, and nothing else. That is a deliberate
+omission and needs stating explicitly, because the absence of these is as much a design
+decision as their presence would be.
+
+\subsection{Regularisation applied, and not applied}
+\label{sec:method-regularisation}
+
+Four mechanisms restrain overfitting: the augmentation pipeline, early stopping on
+validation loss with patience 10, ImageNet pre-training as a strong prior on the
+weights, and the architecture-specific dropout of
+Section~\ref{sec:method-dropout}.
+
+What is not applied: no weight decay, since \texttt{weight\_decay} retains its default
+of zero and there is no $L_2$ penalty; no learning-rate schedule; no gradient clipping;
+no label smoothing. These omissions are uniform, so they confound no comparison between
+conditions. They remain a real limitation, and Chapter~8 argues they are the most
+plausible explanation for the optimisation behaviour observed in the ResNet-50 runs.
+
+\subsection{Early stopping and the epoch budget}
+
+Training runs to a maximum of 50 epochs with early stopping on validation loss at
+patience 10. The best checkpoint by validation loss is the one evaluated on test.
+
+The patience value was revised upward from an initial 5 during piloting, after inspecting
+the validation curves rather than any test-set number. ResNet-50 was still finding new
+best losses at the point where patience 5 terminated it, meaning the original budget was
+cutting off a run that had not converged. The revision was applied uniformly to all
+twelve conditions, so the comparison remains controlled. It is nonetheless a deviation
+from the originally registered protocol and is disclosed here rather than absorbed
+silently.
+
+\subsection{Resumability and configuration drift}
+
+Every epoch writes a checkpoint. A run interrupted by a dropped connection resumes from
+the last completed epoch rather than restarting, which matters when twelve runs share
+one rented GPU session.
+
+Resumption introduces a hazard that is easy to miss: a checkpoint written under one
+configuration can be resumed under another, splicing two protocols into a single history
+file with nothing in the output to indicate it happened. The training loop therefore
+compares the stored configuration against the current one and refuses to continue on any
+mismatch.
+
+\begin{lstlisting}[caption={Configuration drift guard, \texttt{src/ham10000/train.py}.},
+                   label={lst:drift}]
+_MUST_MATCH = ("architecture", "strategy", "image_size", "batch_size",
+               "lr", "num_workers", "seed", "split_hash")
+old = ckpt.get("config", {})
+drift = {
+    k: (old.get(k), run_config.get(k))
+    for k in _MUST_MATCH
+    if k in old and old.get(k) != run_config.get(k)
+}
+if drift:
+    raise RuntimeError(
+        f"{config.experiment_id} has a checkpoint from a different configuration:\n"
+        f"Resuming would mix both protocols in one run."
+    )
+\end{lstlisting}
+
+\section{Compute Environment}
+\label{sec:method-compute}
+
+All twelve runs execute on one rented NVIDIA RTX A4500 (20{,}470~MiB) under PyTorch
+2.8.0 with CUDA 12.8 and torchvision 0.23.0~\cite{paszke2019pytorch}. Using a single GPU
+for every run removes hardware as a source of variation: cuDNN kernel selection is not
+identical across GPU architectures even with deterministic mode enabled, so runs split
+across different cards would not be strictly comparable.
+
+Peak GPU memory was measured for a real training step in each configuration before the
+runs began, to confirm the card was adequate rather than assume it.
+
+\begin{table}[htbp]
+\centering
+\caption{Peak GPU memory for a training step at batch size 32, measured on the RTX A4500.}
+\label{tab:vram}
+\small
+\begin{tabular}{@{}lrl@{}}
+\toprule
+\textbf{Configuration} & \textbf{Peak} & \textbf{Experiments} \\
+\midrule
+MobileNetV2 @224     &  2.6 GB & E1, E3, E5 \\
+ResNet-50 @224       &  3.1 GB & E2, E4, E6 \\
+EfficientNet-B3 @224 &  5.8 GB & E7, E8, E9 \\
+EfficientNet-B3 @300 & 10.2 GB & E10, E11, E12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The 300-pixel runs set the ceiling at 10.2~GB, comfortably inside the card. The dataset
+was staged into a RAM-backed filesystem for training after profiling showed that reading
+individual JPEGs from the network-attached volume, not GPU computation, was the limiting
+factor: 45 images per second from the network mount against 241 from RAM. This affects
+throughput only. The bytes, their order and the seeds are unchanged, so it has no bearing
+on any reported result.
+
+\section{Reproducibility}
+\label{sec:method-repro}
+
+Seeds are fixed at 42 for Python, NumPy and PyTorch, and cuDNN runs in deterministic
+mode with benchmarking disabled.
+
+\begin{lstlisting}[caption={Seeding, \texttt{src/ham10000/train.py}.}, label={lst:seed}]
+def set_seed(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+\end{lstlisting}
+
+Each run persists five artefacts: \texttt{config.json} with the fully resolved
+configuration including the split hash, GPU name and library versions;
+\texttt{history.csv} with per-epoch training and validation curves;
+\texttt{test\_metrics.json} with the full metric set and confusion matrix;
+\texttt{test\_predictions.csv} with a per-image prediction, required for the paired
+statistical tests; and the best checkpoint by validation loss.
+
+Every table and figure in Chapter~7 is generated from those artefacts by script rather
+than transcribed. A number in this document that disagreed with the stored results would
+require the generating code to be wrong, not merely a typo, which is a stronger guarantee
+than proofreading provides.

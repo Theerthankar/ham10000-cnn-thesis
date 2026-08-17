@@ -1,0 +1,145 @@
+\section{Answers}
+\label{sec:conc-answers}
+
+\paragraph{RQ1 passes.} The best MobileNetV2 configuration reaches a melanoma F1 of
+\RQoneFoneMobile{} against \RQoneFoneResnet{} for the best ResNet-50 configuration, a gap
+of \RQoneGap{} against a threshold of 0.05 fixed before any run executed. The result
+holds under the alternative definition of ``best'' as highest macro F1, where the gap
+narrows to \RQoneAltGap{} and reverses direction. A network roughly a tenth the size
+gives up nothing measurable on the class that matters most.
+
+\paragraph{RQ2 is architecture-dependent.} Weighted cross-entropy is best for
+MobileNetV2 (\RQtwoBestMobile), augmentation-only for ResNet-50 (\RQtwoBestResnet),
+where both remedies made matters worse rather than better.
+There is no single best imbalance strategy for this dataset; there is a best strategy per
+backbone, and Chapter~8 traces the difference to optimisation stability rather than to
+anything about the classes.
+
+\paragraph{RQ3 favours MobileNetV2 on every measure.} It is the smallest at 9.07~MB
+against ResNet-50's 94.30~MB, holds 10.5 times fewer parameters, and is the fastest of the
+three on both CPU architectures tested.
+
+The unanticipated part is that parameter count did not predict latency, and that the
+ranking of the two heavier models was not even stable across hosts. EfficientNet-B3 holds
+2.2 times fewer parameters than ResNet-50 yet runs 2.9 times slower on ARM64 and 2.0 times
+faster on x86-64. Depthwise separable convolutions trade arithmetic volume for memory
+traffic, and whether that trade pays depends on where the host binds.
+
+Two things follow. Efficiency reported as parameter count, which is what the literature
+usually reports, does not predict what a model costs to run. And an efficiency claim that
+does not name the CPU it was measured on is not a claim at all. MobileNetV2's advantage
+is the only part of the picture robust to that choice, which is what makes it the
+defensible deployment recommendation.
+
+\paragraph{The ablation does not change the recommendation.} EfficientNet-B3 produced the
+highest-scoring run in the study (E11, macro F1 0.738), but at matched input resolution it
+is statistically indistinguishable from MobileNetV2 in all three comparisons, and its
+advantage traces to the 300-pixel input rather than to the architecture. At that
+resolution it costs 8.9 times MobileNetV2's inference time on ARM64. It is the better
+choice for a server-side deployment and the worse one for the offline mobile setting this
+thesis is about.
+
+\section{Contributions}
+\label{sec:conc-contrib}
+
+The first is the controlled factorial itself. Every configuration shares a split
+verified by hash, an augmentation pipeline, an optimiser, a schedule and a GPU, so
+differences between cells are attributable to the two factors that varied. No published
+HAM10000 study identified in Chapter~2 makes that claim, and it is what allows the RQ2
+finding to be stated as a property of the architectures rather than an artefact of two
+papers using different setups.
+
+The second is per-class reporting throughout. Melanoma F1 varies by a factor of two
+across the six confirmatory runs, from 0.254 to 0.506, while overall accuracy varies by
+0.10 and, between E1 and E2, by 0.004. Any study reporting only the aggregate would
+present those two configurations as near-equivalent.
+
+The third is the finding that imbalance remediation is not architecture-neutral. Weighted
+cross-entropy helped MobileNetV2 and harmed ResNet-50 under otherwise identical
+conditions. A recommendation of an imbalance strategy without reference to the backbone
+is therefore incomplete.
+
+The fourth is diagnostic rather than experimental. Chapter~8 documents that checkpoint
+selection on validation loss cost up to 0.067 macro F1, concentrated on the architecture
+with the noisier optimisation. That is a limitation of a protocol this thesis inherited
+and followed, and identifying it is more useful to anyone repeating this work than the
+headline numbers are.
+
+The fifth is the resolution ablation. Running EfficientNet-B3 at both 224 and its native
+300 pixels, with everything else fixed, separates architectural merit from input size.
+Published comparisons vary the two together and therefore cannot attribute an
+EfficientNet advantage to either. The answer here is that resolution contributes
+materially in one of three training conditions and negligibly in the other two.
+
+The sixth is the implementation. Every table and figure is generated from stored run
+artefacts by script. A number in this document that disagreed with the experiments would
+require the generating code to be wrong rather than a typo to have slipped through.
+
+\section{What This Does Not Establish}
+\label{sec:conc-limits}
+
+Each configuration was trained once. The McNemar tests establish that two specific
+trained models differ on per-image correctness; they do not establish that two
+configurations differ in expectation across seeds. Every claim here should be read with
+that scope.
+
+E4 did not converge within its epoch budget. The findings are HAM10000-specific by
+design. The dataset carries no skin-tone annotation, so nothing here speaks to
+performance across Fitzpatrick types, which for a screening tool is a limitation of
+consequence rather than of completeness.
+
+\section{Future Work}
+\label{sec:future}
+
+\paragraph{Select checkpoints on the reported metric.} Section~\ref{sec:disc-earlystop}
+shows selection on validation loss cost up to 0.067 macro F1 and did so unevenly across
+architectures. Repeating the factorial with selection on validation macro F1 is a small
+change that would remove a confound affecting the headline comparison. This is the first
+thing to do.
+
+\paragraph{Multiple seeds.} Three to five seeds per cell would separate genuine
+differences from run-to-run variance and would let the analysis report confidence
+intervals instead of point estimates. It costs a linear multiple of the compute and is
+the largest single improvement available to this design.
+
+\paragraph{A regularised re-run.} No weight decay, schedule or gradient clipping was
+used. Repeating with a non-zero $L_2$ penalty and a short warmup would test whether
+ResNet-50's instability is architectural, as Chapter~8 argues, or an artefact of an
+under-regularised optimiser configuration. The current design cannot separate the two.
+
+\paragraph{Matched dropout.} Adding $p = 0.2$ before ResNet-50's classifier would
+quantify how much of MobileNetV2's margin comes from regularisation rather than
+architecture. It is a one-line change.
+
+\paragraph{Extend the resolution ablation to the other backbones.} The B3 pairs showed
+that input resolution matters only in combination with weighted cross-entropy
+(Section~\ref{sec:results-ablation}). Whether that interaction is a property of
+EfficientNet or of the training condition is not answerable from one architecture.
+Running MobileNetV2 and ResNet-50 at a second resolution would separate the two.
+
+\paragraph{Skin-tone-stratified evaluation.} On a dataset carrying Fitzpatrick
+annotations, or against an inferred estimate. Until this is done, no deployment
+recommendation from this work should be read as applying across skin tones.
+
+\paragraph{Qualitative error analysis.} Grad-CAM~\cite{selvaraju2017gradcam} on the
+recommended configuration, and a misclassified-image review for the malignant classes,
+to check the models attend to lesions rather than to acquisition artefacts.
+
+\paragraph{On-device measurement.} Latency here is measured on a desktop CPU. A figure
+from an actual mobile SoC would speak directly to the deployment claim, which desktop
+CPU timing only approximates.
+
+\section{Closing}
+\label{sec:conc-closing}
+
+The question was what a lightweight architecture costs on the classes a screening tool
+cannot afford to miss. On HAM10000, under a controlled protocol, the answer is that it
+costs \RQoneGap{} of melanoma F1 against a ten-fold reduction in parameters, and that
+under two of three imbalance strategies the two architectures cannot be told apart on
+per-image correctness at all.
+
+The more useful result is the one that was not anticipated. The best imbalance strategy
+turned out to depend on the architecture it was applied to, and the mechanism was
+optimisation stability rather than class frequency. That is not visible in any study that
+varies one factor at a time, and it is the kind of thing a controlled factorial exists to
+find.
